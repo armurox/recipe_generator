@@ -1,7 +1,7 @@
 from ninja import Router
 
-from .auth import SupabaseJWTAuth
-from .schemas import UserOut, UserUpdateIn
+from apps.users.auth import SupabaseJWTAuth
+from apps.users.schemas import UserOut, UserUpdateIn
 
 router = Router(auth=SupabaseJWTAuth(), tags=["users"])
 

@@ -2,7 +2,7 @@ import jwt
 from django.conf import settings
 from ninja.security import HttpBearer
 
-from .models import User
+from apps.users.models import User
 
 
 class SupabaseJWTAuth(HttpBearer):
