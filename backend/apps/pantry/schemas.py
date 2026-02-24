@@ -13,10 +13,14 @@ class IngredientOut(Schema):
 
     @staticmethod
     def resolve_category_name(obj):
+        if isinstance(obj, dict):
+            return obj.get("category_name")
         return obj.category.name if obj.category else None
 
     @staticmethod
     def resolve_category_icon(obj):
+        if isinstance(obj, dict):
+            return obj.get("category_icon")
         return obj.category.icon if obj.category else None
 
 

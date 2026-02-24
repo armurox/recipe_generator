@@ -277,9 +277,10 @@ class ConfirmReceiptAPITest(TestCase):
         self.assertEqual(data["pantry_items_updated"], 0)
         self.assertEqual(len(data["items"]), 1)
 
-        # Verify response includes full pantry item detail
+        # Verify response includes full pantry item detail with nested category
         item_data = data["items"][0]
         self.assertEqual(item_data["ingredient"]["name"], "banana")
+        self.assertEqual(item_data["ingredient"]["category_name"], "Fresh Fruits")
         self.assertEqual(item_data["source"], "receipt_scan")
         self.assertIsNotNone(item_data["expiry_date"])
 

@@ -8,6 +8,7 @@ from ninja.errors import HttpError
 from ninja.pagination import PageNumberPagination, paginate
 
 from apps.core.schemas import ErrorOut
+from apps.ingredients.models import IngredientCategory
 from apps.pantry.models import PantryItem
 from apps.pantry.schemas import (
     CategorySummaryOut,
@@ -25,16 +26,28 @@ logger = logging.getLogger(__name__)
 router = Router(tags=["pantry"])
 
 
-def _build_pantry_item_response(item: PantryItem) -> dict:
-    """Build the response dict for PantryItemOut from a PantryItem with related ingredient loaded."""
+async def _build_pantry_item_response(item: PantryItem) -> dict:
+    """Build the response dict for PantryItemOut from a PantryItem with ingredient loaded.
+
+    Fetches the ingredient category explicitly because Django's async ORM does not
+    populate nested FK caches (ingredient.category) from select_related — accessing
+    a nullable nested FK silently returns None instead of the cached object.
+    """
     ingredient = item.ingredient
+    category_name = None
+    category_icon = None
+    if ingredient.category_id:
+        category = await IngredientCategory.objects.filter(id=ingredient.category_id).afirst()
+        if category:
+            category_name = category.name
+            category_icon = category.icon
     return {
         "id": item.id,
         "ingredient": {
             "id": ingredient.id,
             "name": ingredient.name,
-            "category_name": ingredient.category.name if ingredient.category else None,
-            "category_icon": ingredient.category.icon if ingredient.category else None,
+            "category_name": category_name,
+            "category_icon": category_icon,
         },
         "quantity": item.quantity,
         "unit": item.unit,
@@ -89,14 +102,23 @@ async def expiring_items(
     Only returns available items with a set expiry date.
     """
     cutoff = date.today() + timedelta(days=days)
-    items = PantryItem.objects.filter(
-        user=request.auth,
-        status=PantryItem.Status.AVAILABLE,
-        expiry_date__isnull=False,
-        expiry_date__lte=cutoff,
-    ).select_related("ingredient__category")
-
-    return [_build_pantry_item_response(item) async for item in items]
+    # Decision: Fetch IDs first, then aget() individually. Nested select_related
+    # (ingredient__category) doesn't populate the second-level FK cache in async
+    # iteration, but aget() works correctly.
+    item_ids = [
+        item_id
+        async for item_id in PantryItem.objects.filter(
+            user=request.auth,
+            status=PantryItem.Status.AVAILABLE,
+            expiry_date__isnull=False,
+            expiry_date__lte=cutoff,
+        ).values_list("id", flat=True)
+    ]
+    result = []
+    for item_id in item_ids:
+        item = await PantryItem.objects.select_related("ingredient__category").aget(id=item_id)
+        result.append(await _build_pantry_item_response(item))
+    return result
 
 
 @router.get("/summary", response=PantrySummaryOut)
@@ -202,7 +224,7 @@ async def add_pantry_item(request, payload: PantryItemCreateIn):
         # Re-fetch with relations for response (arefresh_from_db doesn't load select_related)
         existing = await PantryItem.objects.select_related("ingredient__category").aget(id=existing.id)
         logger.info("[add_pantry_item] upserted item=%s for user=%s", existing.id, user.id)
-        return 200, {"item": _build_pantry_item_response(existing), "created": False}
+        return 200, {"item": await _build_pantry_item_response(existing), "created": False}
     except PantryItem.DoesNotExist:
         pass
 
@@ -220,7 +242,7 @@ async def add_pantry_item(request, payload: PantryItemCreateIn):
     # Load relations for response
     item = await PantryItem.objects.select_related("ingredient__category").aget(id=item.id)
     logger.info("[add_pantry_item] created item=%s for user=%s", item.id, user.id)
-    return 201, {"item": _build_pantry_item_response(item), "created": True}
+    return 201, {"item": await _build_pantry_item_response(item), "created": True}
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +276,7 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
 
     await item.asave()
     logger.info("[update_pantry_item] item=%s updated", item.id)
-    return _build_pantry_item_response(item)
+    return await _build_pantry_item_response(item)
 
 
 @router.delete("/{item_id}", response={204: None, 404: ErrorOut})
@@ -309,4 +331,4 @@ async def use_pantry_item(request, item_id: str, payload: PantryItemUseIn | None
             logger.info("[use_pantry_item] item=%s partially used, remaining=%s", item.id, item.quantity)
 
     await item.asave()
-    return _build_pantry_item_response(item)
+    return await _build_pantry_item_response(item)

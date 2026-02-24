@@ -192,11 +192,13 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
             created_count += 1
             pantry_item_ids.append(pantry_item.id)
 
-    # Batch-fetch all created/updated items with relations for the response
-    pantry_items = [
-        _build_pantry_item_response(item)
-        async for item in PantryItem.objects.filter(id__in=pantry_item_ids).select_related("ingredient__category")
-    ]
+    # Decision: Fetch items individually with aget() + select_related so each item
+    # has ingredient loaded, then _build_pantry_item_response explicitly fetches
+    # the category (Django async ORM doesn't populate nested FK caches).
+    pantry_items = []
+    for item_id in pantry_item_ids:
+        item = await PantryItem.objects.select_related("ingredient__category").aget(id=item_id)
+        pantry_items.append(await _build_pantry_item_response(item))
 
     logger.info("[confirm_receipt] scan=%s done: created=%d, updated=%d", scan.id, created_count, updated_count)
     return {
