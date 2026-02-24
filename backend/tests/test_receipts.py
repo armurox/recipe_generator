@@ -275,6 +275,13 @@ class ConfirmReceiptAPITest(TestCase):
         data = response.json()
         self.assertEqual(data["pantry_items_created"], 1)
         self.assertEqual(data["pantry_items_updated"], 0)
+        self.assertEqual(len(data["items"]), 1)
+
+        # Verify response includes full pantry item detail
+        item_data = data["items"][0]
+        self.assertEqual(item_data["ingredient"]["name"], "banana")
+        self.assertEqual(item_data["source"], "receipt_scan")
+        self.assertIsNotNone(item_data["expiry_date"])
 
         pantry = PantryItem.objects.first()
         self.assertEqual(pantry.ingredient, self.ingredient)
@@ -312,9 +319,52 @@ class ConfirmReceiptAPITest(TestCase):
         data = response.json()
         self.assertEqual(data["pantry_items_created"], 0)
         self.assertEqual(data["pantry_items_updated"], 1)
+        self.assertEqual(len(data["items"]), 1)
+        self.assertEqual(data["items"][0]["quantity"], "5.00")
 
         pantry = PantryItem.objects.get(user=self.user, ingredient=self.ingredient)
         self.assertEqual(pantry.quantity, Decimal("5.00"))  # 2.00 + 3.00
+
+    def test_confirm_with_expiry_override(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"items": [{"receipt_item_id": self.item.id, "expiry_date": "2026-06-15"}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # User-provided expiry_date should take precedence over auto-calculation
+        self.assertEqual(data["items"][0]["expiry_date"], "2026-06-15")
+        pantry = PantryItem.objects.first()
+        self.assertEqual(str(pantry.expiry_date), "2026-06-15")
+
+    def test_confirm_response_includes_pantry_items(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"items": [{"receipt_item_id": self.item.id}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("items", data)
+        self.assertEqual(len(data["items"]), 1)
+
+        item_data = data["items"][0]
+        # Full PantryItemOut shape
+        self.assertIn("id", item_data)
+        self.assertIn("ingredient", item_data)
+        self.assertIn("quantity", item_data)
+        self.assertIn("unit", item_data)
+        self.assertIn("added_date", item_data)
+        self.assertIn("expiry_date", item_data)
+        self.assertIn("source", item_data)
+        self.assertIn("status", item_data)
+        # Nested ingredient detail
+        self.assertIn("name", item_data["ingredient"])
+        self.assertIn("category_name", item_data["ingredient"])
+        self.assertIn("category_icon", item_data["ingredient"])
 
     def test_confirm_rejects_non_completed_scan(self):
         self.scan.status = ReceiptScan.Status.PROCESSING

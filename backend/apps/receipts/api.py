@@ -7,6 +7,7 @@ from ninja.errors import HttpError
 from ninja.pagination import PageNumberPagination, paginate
 
 from apps.core.schemas import ErrorOut
+from apps.pantry.api import _build_pantry_item_response
 from apps.pantry.models import PantryItem
 from apps.pantry.services import calculate_expiry_date, get_or_create_ingredient
 from apps.receipts.models import ReceiptItem, ReceiptScan
@@ -114,10 +115,13 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
     """Confirm extracted items and add them to the user's pantry.
 
     Only items included in the request are added. Users can override
-    ingredient_name, quantity, and unit to correct OCR mistakes.
+    ingredient_name, quantity, unit, and expiry_date to correct OCR mistakes
+    or set custom expiry dates.
 
     If the user already has an 'available' pantry item for the same ingredient,
     quantities are added together (upsert) instead of creating a duplicate.
+
+    Returns the created/updated pantry items with full ingredient detail.
     """
     try:
         scan = await ReceiptScan.objects.aget(id=scan_id, user=request.auth)
@@ -135,6 +139,7 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
 
     created_count = 0
     updated_count = 0
+    pantry_item_ids = []
 
     for confirm_item in payload.items:
         receipt_item = scan_items.get(confirm_item.receipt_item_id)
@@ -153,7 +158,8 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
         quantity = confirm_item.quantity if confirm_item.quantity is not None else receipt_item.quantity
         unit = confirm_item.unit if confirm_item.unit is not None else receipt_item.unit
 
-        expiry_date = await calculate_expiry_date(ingredient)
+        # Decision: User-provided expiry_date takes precedence over auto-calculation.
+        expiry_date = confirm_item.expiry_date or await calculate_expiry_date(ingredient)
 
         # Decision: Upsert — if an "available" pantry item exists for this ingredient,
         # add the quantity rather than creating a duplicate (respects UniqueConstraint).
@@ -167,11 +173,14 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
                 existing.quantity += quantity
             elif quantity:
                 existing.quantity = quantity
+            if confirm_item.expiry_date:
+                existing.expiry_date = confirm_item.expiry_date
             existing.receipt_scan = scan
             await existing.asave()
             updated_count += 1
+            pantry_item_ids.append(existing.id)
         except PantryItem.DoesNotExist:
-            await PantryItem.objects.acreate(
+            pantry_item = await PantryItem.objects.acreate(
                 user=request.auth,
                 ingredient=ingredient,
                 quantity=quantity,
@@ -181,9 +190,20 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
                 receipt_scan=scan,
             )
             created_count += 1
+            pantry_item_ids.append(pantry_item.id)
+
+    # Batch-fetch all created/updated items with relations for the response
+    pantry_items = [
+        _build_pantry_item_response(item)
+        async for item in PantryItem.objects.filter(id__in=pantry_item_ids).select_related("ingredient__category")
+    ]
 
     logger.info("[confirm_receipt] scan=%s done: created=%d, updated=%d", scan.id, created_count, updated_count)
-    return {"pantry_items_created": created_count, "pantry_items_updated": updated_count}
+    return {
+        "pantry_items_created": created_count,
+        "pantry_items_updated": updated_count,
+        "items": pantry_items,
+    }
 
 
 @router.delete("/{scan_id}", response={204: None, 404: ErrorOut})

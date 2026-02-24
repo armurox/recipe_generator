@@ -1,8 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from ninja import Field, Schema
+
+from apps.pantry.schemas import PantryItemOut
 
 
 class ScanReceiptIn(Schema):
@@ -43,6 +45,7 @@ class ConfirmItemIn(Schema):
     ingredient_name: str | None = Field(default=None, description="Override the OCR-detected ingredient name")
     quantity: Decimal | None = Field(default=None, description="Override the OCR-detected quantity")
     unit: str | None = Field(default=None, description="Override the OCR-detected unit")
+    expiry_date: date | None = Field(default=None, description="Override the auto-calculated expiry date")
 
 
 class ConfirmReceiptIn(Schema):
@@ -52,3 +55,4 @@ class ConfirmReceiptIn(Schema):
 class ConfirmReceiptOut(Schema):
     pantry_items_created: int
     pantry_items_updated: int
+    items: list[PantryItemOut] = Field(description="The created/updated pantry items with full detail")
