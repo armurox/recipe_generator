@@ -1,5 +1,4 @@
 import logging
-from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Count
@@ -8,8 +7,8 @@ from ninja.errors import HttpError
 from ninja.pagination import PageNumberPagination, paginate
 
 from apps.core.schemas import ErrorOut
-from apps.ingredients.models import Ingredient, IngredientCategory
 from apps.pantry.models import PantryItem
+from apps.pantry.services import calculate_expiry_date, get_or_create_ingredient
 from apps.receipts.models import ReceiptItem, ReceiptScan
 from apps.receipts.schemas import (
     ConfirmReceiptIn,
@@ -65,7 +64,7 @@ async def scan_receipt(request, payload: ScanReceiptIn):
     for extracted in result.items:
         ingredient = None
         if extracted.is_food:
-            ingredient = await _get_or_create_ingredient(extracted.name, extracted.category_hint, extracted.unit)
+            ingredient = await get_or_create_ingredient(extracted.name, extracted.category_hint, extracted.unit)
 
         item = await ReceiptItem.objects.acreate(
             receipt=scan,
@@ -149,12 +148,12 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
         if not ingredient_name:
             raise HttpError(400, f"No ingredient name for item {confirm_item.receipt_item_id}")
 
-        ingredient = await _get_or_create_ingredient(ingredient_name, None, None)
+        ingredient = await get_or_create_ingredient(ingredient_name, None, None)
 
         quantity = confirm_item.quantity if confirm_item.quantity is not None else receipt_item.quantity
         unit = confirm_item.unit if confirm_item.unit is not None else receipt_item.unit
 
-        expiry_date = await _calculate_expiry_date(ingredient)
+        expiry_date = await calculate_expiry_date(ingredient)
 
         # Decision: Upsert — if an "available" pantry item exists for this ingredient,
         # add the quantity rather than creating a duplicate (respects UniqueConstraint).
@@ -201,45 +200,6 @@ async def delete_scan(request, scan_id: str):
     logger.info("[delete_scan] scan=%s user=%s", scan.id, request.auth.id)
     await scan.adelete()
     return 204, None
-
-
-async def _get_or_create_ingredient(name: str, category_hint: str | None, unit: str | None) -> Ingredient:
-    """Normalize ingredient name and get or create the Ingredient record.
-
-    If a category_hint is provided, try to match it to an existing IngredientCategory.
-    """
-    normalized = name.lower().strip()
-    defaults = {}
-    if unit:
-        defaults["common_unit"] = unit
-
-    ingredient, created = await Ingredient.objects.aget_or_create(name=normalized, defaults=defaults)
-
-    # Assign category if hint provided and ingredient has no category yet
-    if created and category_hint:
-        try:
-            category = await IngredientCategory.objects.aget(name=category_hint)
-            ingredient.category = category
-            await ingredient.asave()
-        except IngredientCategory.DoesNotExist:
-            pass
-
-    if created:
-        logger.debug("[_get_or_create_ingredient] created ingredient=%s category=%s", normalized, category_hint)
-
-    return ingredient
-
-
-async def _calculate_expiry_date(ingredient: Ingredient) -> date | None:
-    """Calculate expiry date based on ingredient's category shelf life."""
-    if not ingredient.category_id:
-        return None
-
-    try:
-        category = await IngredientCategory.objects.aget(id=ingredient.category_id)
-        return date.today() + timedelta(days=category.default_shelf_life)
-    except IngredientCategory.DoesNotExist:
-        return None
 
 
 def _build_scan_detail_response(scan: ReceiptScan, items: list[ReceiptItem]) -> dict:
