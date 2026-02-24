@@ -81,8 +81,16 @@ Every API endpoint module (`api.py`) should include:
 - `receipt_items.ingredient_id` is nullable for non-food receipt lines (TAX, BAGS, etc.)
 - Service abstractions: OCRProvider and RecipeProvider interfaces for swappable implementations
 
+## Logging
+- Use Python's standard `logging` module — one logger per module: `logger = logging.getLogger(__name__)`
+- **Scope every log message** with `[function_name]` prefix for traceability: `logger.info("[scan_receipt] scan=%s completed", scan.id)`
+- Use appropriate levels: `DEBUG` for internal details (ingredient creation), `INFO` for request lifecycle (start, complete, counts), `WARNING` for recoverable issues, `ERROR` for failures
+- Include relevant identifiers (user ID, scan ID, item counts) as structured key=value pairs after the function prefix
+- Do not log sensitive data (tokens, passwords, full image data)
+
 ## Future Considerations
 - Evaluate cacheops / Redis for caching when query performance becomes a concern
+- Set up centralized logging pipeline (ELK / CloudWatch) on deployment — backend container logs piped to aggregator
 
 ## Environment Variables
 Build `.env` files incrementally as each feature is implemented. Prompt the user for secrets when needed:

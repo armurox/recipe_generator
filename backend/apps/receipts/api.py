@@ -39,17 +39,21 @@ async def scan_receipt(request, payload: ScanReceiptIn):
 
     Returns 502 if the OCR provider fails (API error, image download failure).
     """
+    user = request.auth
+    logger.info("[scan_receipt] user=%s image_url=%s", user.id, payload.image_url)
+
     scan = await ReceiptScan.objects.acreate(
-        user=request.auth,
+        user=user,
         image_url=payload.image_url,
     )
+    logger.info("[scan_receipt] created scan=%s", scan.id)
 
     try:
         result = await ocr_provider.extract_receipt(payload.image_url)
     except OCRExtractionError as exc:
         scan.status = ReceiptScan.Status.FAILED
         await scan.asave()
-        logger.error("OCR extraction failed for scan %s: %s", scan.id, exc)
+        logger.error("[scan_receipt] OCR failed for scan=%s: %s", scan.id, exc)
         raise HttpError(502, f"Receipt extraction failed: {exc}")
 
     scan.store_name = result.store_name
@@ -73,6 +77,7 @@ async def scan_receipt(request, payload: ScanReceiptIn):
         )
         items.append(item)
 
+    logger.info("[scan_receipt] scan=%s completed, %d items created", scan.id, len(items))
     return _build_scan_detail_response(scan, items)
 
 
@@ -122,6 +127,8 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
 
     if scan.status != ReceiptScan.Status.COMPLETED:
         raise HttpError(400, "Can only confirm completed scans")
+
+    logger.info("[confirm_receipt] scan=%s, confirming %d items", scan.id, len(payload.items))
 
     # Decision: Pre-fetch all receipt items for this scan in one query
     # to validate IDs and avoid N+1 lookups in the confirm loop.
@@ -176,6 +183,7 @@ async def confirm_receipt(request, scan_id: str, payload: ConfirmReceiptIn):
             )
             created_count += 1
 
+    logger.info("[confirm_receipt] scan=%s done: created=%d, updated=%d", scan.id, created_count, updated_count)
     return {"pantry_items_created": created_count, "pantry_items_updated": updated_count}
 
 
@@ -190,6 +198,7 @@ async def delete_scan(request, scan_id: str):
     except ReceiptScan.DoesNotExist:
         raise HttpError(404, "Scan not found")
 
+    logger.info("[delete_scan] scan=%s user=%s", scan.id, request.auth.id)
     await scan.adelete()
     return 204, None
 
@@ -214,6 +223,9 @@ async def _get_or_create_ingredient(name: str, category_hint: str | None, unit: 
             await ingredient.asave()
         except IngredientCategory.DoesNotExist:
             pass
+
+    if created:
+        logger.debug("[_get_or_create_ingredient] created ingredient=%s category=%s", normalized, category_hint)
 
     return ingredient
 

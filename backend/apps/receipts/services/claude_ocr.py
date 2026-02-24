@@ -127,6 +127,19 @@ MEDIA_TYPE_MAP = {
 }
 
 
+def _detect_media_type_from_bytes(data: bytes) -> str | None:
+    """Detect image media type from magic bytes."""
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:4] in (b"GIF8",):
+        return "image/gif"
+    return None
+
+
 class ClaudeOCRProvider(OCRProvider):
     def __init__(self):
         self.client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
@@ -134,8 +147,10 @@ class ClaudeOCRProvider(OCRProvider):
 
     async def extract_receipt(self, image_url: str) -> ReceiptExtractionResult:
         """Download receipt image, send to Claude Vision, return structured extraction."""
+        logger.info("[extract_receipt] starting, image_url=%s", image_url)
         image_data, media_type = await self._download_image(image_url)
 
+        logger.info("[extract_receipt] sending to Claude Vision, model=%s media_type=%s", self.model, media_type)
         try:
             response = await self.client.messages.create(
                 model=self.model,
@@ -164,27 +179,38 @@ class ClaudeOCRProvider(OCRProvider):
                 ],
             )
         except anthropic.APIError as exc:
-            logger.error("Claude API error: %s", exc)
+            logger.error("[extract_receipt] Claude API error: %s", exc)
             raise OCRExtractionError(f"Claude API error: {exc}") from exc
 
+        logger.info(
+            "[extract_receipt] Claude response: usage=%s stop_reason=%s",
+            getattr(response, "usage", None),
+            response.stop_reason,
+        )
         return self._parse_response(response)
 
     async def _download_image(self, image_url: str) -> tuple[str, str]:
         """Download image from URL, return (base64_data, media_type)."""
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(image_url)
+            async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "PantryChef/1.0"}) as client:
+                resp = await client.get(image_url, follow_redirects=True)
                 resp.raise_for_status()
         except httpx.HTTPError as exc:
+            logger.error("[_download_image] failed for %s: %s", image_url, exc)
             raise OCRExtractionError(f"Failed to download image: {exc}") from exc
 
-        content_type = resp.headers.get("content-type", "")
-        if content_type and "/" in content_type:
-            media_type = content_type.split(";")[0].strip()
-        else:
-            # Guess from URL extension
-            ext = "." + image_url.rsplit(".", 1)[-1].split("?")[0].lower() if "." in image_url else ""
-            media_type = MEDIA_TYPE_MAP.get(ext) or mimetypes.guess_type(image_url)[0] or "image/jpeg"
+        logger.info("[_download_image] %d bytes from %s", len(resp.content), image_url)
+
+        # Detect media type from actual file content (magic bytes), falling back
+        # to Content-Type header or URL extension if content sniffing fails.
+        media_type = _detect_media_type_from_bytes(resp.content)
+        if not media_type:
+            content_type = resp.headers.get("content-type", "")
+            if content_type and "/" in content_type:
+                media_type = content_type.split(";")[0].strip()
+            else:
+                ext = "." + image_url.rsplit(".", 1)[-1].split("?")[0].lower() if "." in image_url else ""
+                media_type = MEDIA_TYPE_MAP.get(ext) or mimetypes.guess_type(image_url)[0] or "image/jpeg"
 
         image_data = base64.b64encode(resp.content).decode("utf-8")
         return image_data, media_type
@@ -208,10 +234,19 @@ class ClaudeOCRProvider(OCRProvider):
                     )
                     for item in tool_input.get("items", [])
                 ]
+                food_count = sum(1 for i in items if i.is_food)
+                logger.info(
+                    "[_parse_response] %d items (%d food, %d non-food) store=%s",
+                    len(items),
+                    food_count,
+                    len(items) - food_count,
+                    tool_input.get("store_name"),
+                )
                 return ReceiptExtractionResult(
                     store_name=tool_input.get("store_name"),
                     items=items,
                     raw_response=raw_response,
                 )
 
+        logger.error("[_parse_response] no tool_use block, stop_reason=%s", response.stop_reason)
         raise OCRExtractionError("No tool_use block found in Claude response")
