@@ -20,6 +20,9 @@ Full plan at `~/.claude/plans/parsed-riding-pumpkin.md`
 - **Linting:** ruff (run `uv run ruff check` and `uv run ruff format` after tests)
 - **Type checking:** ty
 - **Testing:** pytest with Django TestCase classes and factory_boy for model factories (`tests/factories.py`)
+- **Pre-commit hooks:** ruff lint/format + ty type check run on every commit
+- **CI:** GitHub Actions runs lint + tests on PRs to `main` and pushes to `main`
+- Run tests manually before pushing: `cd backend && uv run pytest tests/ -v`
 
 ## Code Style
 - **Absolute imports only** — use `from apps.users.models import User`, never relative imports

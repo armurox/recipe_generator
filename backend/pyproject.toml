@@ -25,6 +25,8 @@ dev = [
     "pytest-asyncio>=0.24,<1.0",
     "ruff>=0.9,<1.0",
     "factory-boy>=3.3,<4.0",
+    "pre-commit>=4.0,<5.0",
+    "ty>=0.0.1a0",
 ]
 
 [tool.pytest.ini_options]
@@ -35,3 +37,10 @@ testpaths = ["tests"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+
+[tool.ty.rules]
+# Django ORM uses metaclass-injected managers (.objects) and field descriptors
+# that ty can't resolve yet — demote to warnings so they don't block CI/commits
+unresolved-attribute = "warn"
+possibly-missing-attribute = "ignore"
+invalid-assignment = "warn"
