@@ -46,3 +46,5 @@ possibly-missing-attribute = "ignore"
 invalid-assignment = "warn"
 # Anthropic SDK uses complex overloaded types that ty can't narrow correctly
 invalid-argument-type = "warn"
+# Wildcard imports (e.g. local.py importing from base.py) lose type info for nested dicts
+not-subscriptable = "warn"

@@ -6,7 +6,7 @@ Django + Django Ninja REST API for the PantryChef recipe generator app.
 
 | Layer | Tool | Version |
 |-------|------|---------|
-| Framework | Django + Django Ninja | 5.1 / 1.3 |
+| Framework | Django + Django Ninja | 6.0 / 1.3 |
 | Language | Python | 3.12+ |
 | Package manager | uv | latest |
 | Database | Supabase Postgres (via psycopg) | — |
@@ -127,8 +127,37 @@ Both jobs run on `ubuntu-latest` with Python 3.12, using `astral-sh/setup-uv` fo
 | GET | `/api/v1/health` | No | Health check |
 | GET | `/api/v1/me` | Yes | Get current user profile |
 | PATCH | `/api/v1/me` | Yes | Update profile |
+| POST | `/api/v1/receipts/scan` | Yes | Upload receipt image URL for OCR extraction |
+| GET | `/api/v1/receipts/` | Yes | List user's receipt scans (paginated) |
+| GET | `/api/v1/receipts/{id}` | Yes | Get scan detail with extracted items |
+| POST | `/api/v1/receipts/{id}/confirm` | Yes | Confirm items and add to pantry |
+| DELETE | `/api/v1/receipts/{id}` | Yes | Delete a scan and its items |
 
 All authenticated endpoints require `Authorization: Bearer <supabase_jwt>`.
+
+## Management Commands
+
+| Command | Description |
+|---------|-------------|
+| `uv run python manage.py seed_categories` | Seed 25 ingredient categories with shelf life data (idempotent) |
+| `uv run python manage.py gen_test_token` | Generate a test JWT for Swagger / curl authentication |
+| `uv run python manage.py test_scan [image_path]` | Serve a local image via HTTP for testing the scan endpoint (default: `/tmp/test_receipt.jpg`) |
+
+### Local testing workflow
+
+```bash
+# Terminal 1: serve a receipt image
+uv run python manage.py test_scan /tmp/test_receipt.jpg
+
+# Terminal 2: start the dev server
+uv run python manage.py runserver
+
+# Terminal 3 (or use Swagger UI):
+# 1. Generate a token
+uv run python manage.py gen_test_token
+# 2. Paste token into Swagger Authorize at http://localhost:8000/api/v1/docs
+# 3. POST /api/v1/receipts/scan with {"image_url": "http://localhost:9999/test_receipt.jpg"}
+```
 
 ## Environment Variables
 
@@ -138,5 +167,7 @@ All authenticated endpoints require `Authorization: Bearer <supabase_jwt>`.
 | `DATABASE_URL` | Yes | Pooled Supabase Postgres connection (port 6543) |
 | `DIRECT_URL` | Yes | Direct Supabase Postgres connection (port 5432, for migrations) |
 | `SUPABASE_JWT_SECRET` | Yes | JWT secret from Supabase dashboard > Settings > API |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude Vision OCR |
+| `ANTHROPIC_MODEL` | No | Claude model override (default: `claude-sonnet-4-20250514`) |
 | `ALLOWED_HOSTS` | Prod | Comma-separated production domain(s) |
 | `CORS_ALLOWED_ORIGINS` | Prod | Frontend URL for CORS |

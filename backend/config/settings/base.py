@@ -98,6 +98,38 @@ STORAGES = {
     },
 }
 
+# Logging — app log level defaults to INFO; local.py overrides to DEBUG
+APP_LOG_LEVEL = "INFO"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "apps": {
+            "handlers": ["console"],
+            "level": APP_LOG_LEVEL,
+            "propagate": False,
+        },
+        "config": {
+            "handlers": ["console"],
+            "level": APP_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
 # Supabase JWT
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
