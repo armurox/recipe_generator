@@ -22,6 +22,10 @@ INSTALLED_APPS = [
     # Local
     "apps.core",
     "apps.users",
+    "apps.ingredients",
+    "apps.receipts",
+    "apps.pantry",
+    "apps.recipes",
 ]
 
 MIDDLEWARE = [
