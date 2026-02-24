@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1">
+  <title>Recipes</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="status-bar-icons">
+      <span>&#9679;&#9679;&#9679;&#9679;</span>
+      <span>&#128267;</span>
+    </div>
+  </div>
+
+  <div class="header">
+    <div>
+      <h1>Recipes</h1>
+      <p class="header-subtitle">Based on your pantry</p>
+    </div>
+    <a href="saved-recipes.html" style="text-decoration:none;">
+      <div style="width:40px; height:40px; border-radius:50%; background:var(--gray-100); display:flex; align-items:center; justify-content:center; font-size:20px;">♡</div>
+    </a>
+  </div>
+
+  <div class="content">
+    <!-- Search -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search recipes...">
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="tabs">
+      <button class="tab active">For You</button>
+      <button class="tab">Quick Meals</button>
+      <button class="tab">Vegetarian</button>
+      <button class="tab">Healthy</button>
+    </div>
+
+    <!-- Suggestion header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div>
+        <div class="section-title" style="margin-bottom:2px;">Best matches</div>
+        <div style="font-size:13px; color:var(--gray-500);">Using your expiring ingredients first</div>
+      </div>
+    </div>
+
+    <!-- Recipe Cards -->
+    <div class="recipe-card">
+      <div class="recipe-image">
+        🍝
+        <div class="recipe-match">4/5 match</div>
+        <button class="recipe-save-btn">♡</button>
+      </div>
+      <div class="recipe-body">
+        <div class="recipe-title">Creamy Chicken Pasta</div>
+        <div class="recipe-meta">
+          <span>⏱ 30 min</span>
+          <span>👤 4 servings</span>
+          <span>📊 Easy</span>
+        </div>
+        <div class="recipe-ingredients-preview">
+          <span class="badge badge-green">Chicken</span>
+          <span class="badge badge-green">Pasta</span>
+          <span class="badge badge-green">Cheese</span>
+          <span class="badge badge-green">Spinach</span>
+          <span class="badge badge-gray">Cream</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipe-card">
+      <div class="recipe-image" style="background: linear-gradient(135deg, var(--yellow-100), var(--green-100))">
+        🥗
+        <div class="recipe-match">3/4 match</div>
+        <button class="recipe-save-btn">♡</button>
+      </div>
+      <div class="recipe-body">
+        <div class="recipe-title">Spinach & Pepper Stir-Fry</div>
+        <div class="recipe-meta">
+          <span>⏱ 15 min</span>
+          <span>👤 2 servings</span>
+          <span>📊 Easy</span>
+        </div>
+        <div class="recipe-ingredients-preview">
+          <span class="badge badge-green">Spinach</span>
+          <span class="badge badge-green">Bell Pepper</span>
+          <span class="badge badge-green">Olive Oil</span>
+          <span class="badge badge-gray">Soy Sauce</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipe-card">
+      <div class="recipe-image" style="background: linear-gradient(135deg, var(--orange-100), var(--red-100))">
+        🍔
+        <div class="recipe-match">3/6 match</div>
+        <button class="recipe-save-btn">♡</button>
+      </div>
+      <div class="recipe-body">
+        <div class="recipe-title">Classic Cheeseburgers</div>
+        <div class="recipe-meta">
+          <span>⏱ 25 min</span>
+          <span>👤 4 servings</span>
+          <span>📊 Easy</span>
+        </div>
+        <div class="recipe-ingredients-preview">
+          <span class="badge badge-green">Ground Beef</span>
+          <span class="badge badge-green">Cheese</span>
+          <span class="badge badge-green">Onion</span>
+          <span class="badge badge-gray">Buns</span>
+          <span class="badge badge-gray">Lettuce</span>
+          <span class="badge badge-gray">Tomato</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipe-card">
+      <div class="recipe-image" style="background: linear-gradient(135deg, var(--green-100), var(--yellow-100))">
+        🍲
+        <div class="recipe-match">3/5 match</div>
+        <button class="recipe-save-btn" style="color:var(--red-500);">♥</button>
+      </div>
+      <div class="recipe-body">
+        <div class="recipe-title">Vegetable Curry</div>
+        <div class="recipe-meta">
+          <span>⏱ 40 min</span>
+          <span>👤 4 servings</span>
+          <span>📊 Medium</span>
+        </div>
+        <div class="recipe-ingredients-preview">
+          <span class="badge badge-green">Bell Pepper</span>
+          <span class="badge badge-green">Carrots</span>
+          <span class="badge badge-green">Onion</span>
+          <span class="badge badge-gray">Coconut Milk</span>
+          <span class="badge badge-gray">Curry Paste</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a class="nav-item" href="dashboard.html">
+      <div class="nav-icon">🏠</div>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="pantry.html">
+      <div class="nav-icon">📦</div>
+      <span>Pantry</span>
+    </a>
+    <a class="nav-item" href="scan.html">
+      <div class="nav-scan">
+        <div class="nav-icon">📷</div>
+      </div>
+      <span>Scan</span>
+    </a>
+    <a class="nav-item active" href="recipes.html">
+      <div class="nav-icon">📖</div>
+      <span>Recipes</span>
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">⚙️</div>
+      <span>Settings</span>
+    </a>
+  </nav>
+</body>
+</html>

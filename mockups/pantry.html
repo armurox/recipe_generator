@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1">
+  <title>Pantry</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="status-bar-icons">
+      <span>&#9679;&#9679;&#9679;&#9679;</span>
+      <span>&#128267;</span>
+    </div>
+  </div>
+
+  <div class="header">
+    <div>
+      <h1>Pantry</h1>
+      <p class="header-subtitle">24 items tracked</p>
+    </div>
+    <div class="avatar">A</div>
+  </div>
+
+  <div class="content">
+    <!-- Search -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search pantry items...">
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="tabs">
+      <button class="tab active">All</button>
+      <button class="tab">Available</button>
+      <button class="tab">Expiring</button>
+      <button class="tab">Expired</button>
+    </div>
+
+    <!-- Dairy -->
+    <div class="category-group">
+      <div class="category-header">
+        <span class="category-icon">🥛</span>
+        Dairy
+      </div>
+      <div class="card" style="padding:4px 16px">
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Whole Milk</div>
+            <div class="list-item-subtitle">1L</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-expired">Expired</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 22</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Cheddar Cheese</div>
+            <div class="list-item-subtitle">200g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-soon">Tomorrow</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 25</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Greek Yogurt</div>
+            <div class="list-item-subtitle">500g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-ok">5 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Mar 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meat -->
+    <div class="category-group">
+      <div class="category-header">
+        <span class="category-icon">🥩</span>
+        Meat & Poultry
+      </div>
+      <div class="card" style="padding:4px 16px">
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Chicken Breast</div>
+            <div class="list-item-subtitle">500g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-expired">Expired</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 23</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Ground Beef</div>
+            <div class="list-item-subtitle">400g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-soon">2 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 26</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vegetables -->
+    <div class="category-group">
+      <div class="category-header">
+        <span class="category-icon">🥬</span>
+        Fresh Vegetables
+      </div>
+      <div class="card" style="padding:4px 16px">
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Baby Spinach</div>
+            <div class="list-item-subtitle">150g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-soon">3 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 27</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Bell Peppers</div>
+            <div class="list-item-subtitle">3 pcs</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-soon">2 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 26</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Carrots</div>
+            <div class="list-item-subtitle">6 pcs</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-ok">8 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Mar 4</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Onions</div>
+            <div class="list-item-subtitle">4 pcs</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-ok">21 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Mar 17</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dry Goods -->
+    <div class="category-group">
+      <div class="category-header">
+        <span class="category-icon">🍝</span>
+        Dry Goods & Pasta
+      </div>
+      <div class="card" style="padding:4px 16px">
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Penne Pasta</div>
+            <div class="list-item-subtitle">500g</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-ok">340 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Jan 30, 2027</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">Basmati Rice</div>
+            <div class="list-item-subtitle">1kg</div>
+          </div>
+          <div class="list-item-right">
+            <span class="expiry-text expiry-ok">350 days</span>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:2px;">Feb 9, 2027</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab">+</button>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a class="nav-item" href="dashboard.html">
+      <div class="nav-icon">🏠</div>
+      <span>Home</span>
+    </a>
+    <a class="nav-item active" href="pantry.html">
+      <div class="nav-icon">📦</div>
+      <span>Pantry</span>
+    </a>
+    <a class="nav-item" href="scan.html">
+      <div class="nav-scan">
+        <div class="nav-icon">📷</div>
+      </div>
+      <span>Scan</span>
+    </a>
+    <a class="nav-item" href="recipes.html">
+      <div class="nav-icon">📖</div>
+      <span>Recipes</span>
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">⚙️</div>
+      <span>Settings</span>
+    </a>
+  </nav>
+</body>
+</html>

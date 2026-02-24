@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1">
+  <title>Scan Receipt</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="status-bar-icons">
+      <span>&#9679;&#9679;&#9679;&#9679;</span>
+      <span>&#128267;</span>
+    </div>
+  </div>
+
+  <div class="header">
+    <div>
+      <h1>Scan Receipt</h1>
+      <p class="header-subtitle">Add items to your pantry</p>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Upload Area -->
+    <div class="upload-area">
+      <div class="upload-icon">📸</div>
+      <div class="upload-text">Take a photo or upload</div>
+      <div class="upload-hint">Supports JPG, PNG up to 10MB</div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-bottom:24px;">
+      <button class="btn btn-primary" style="flex:1">
+        📷 Camera
+      </button>
+      <button class="btn btn-outline" style="flex:1">
+        📁 Gallery
+      </button>
+    </div>
+
+    <!-- Recent Scans -->
+    <div class="section-title">Recent Scans</div>
+
+    <div class="card">
+      <div class="list-item">
+        <div class="list-icon" style="background:var(--green-100)">🧾</div>
+        <div class="list-item-content">
+          <div class="list-item-title">Whole Foods Market</div>
+          <div class="list-item-subtitle">12 items · Feb 22, 2026</div>
+        </div>
+        <div class="list-item-right">
+          <span class="badge badge-green">Completed</span>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="list-icon" style="background:var(--green-100)">🧾</div>
+        <div class="list-item-content">
+          <div class="list-item-title">Trader Joe's</div>
+          <div class="list-item-subtitle">8 items · Feb 18, 2026</div>
+        </div>
+        <div class="list-item-right">
+          <span class="badge badge-green">Completed</span>
+        </div>
+      </div>
+
+      <div class="list-item">
+        <div class="list-icon" style="background:var(--green-100)">🧾</div>
+        <div class="list-item-content">
+          <div class="list-item-title">Costco</div>
+          <div class="list-item-subtitle">15 items · Feb 14, 2026</div>
+        </div>
+        <div class="list-item-right">
+          <span class="badge badge-green">Completed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tip -->
+    <div class="card" style="background:var(--green-50); border: 1px solid var(--green-100);">
+      <div style="display:flex; gap:12px; align-items:flex-start">
+        <span style="font-size:24px;">💡</span>
+        <div>
+          <div style="font-weight:600; font-size:14px; margin-bottom:4px;">Tips for best results</div>
+          <ul style="font-size:13px; color:var(--gray-700); line-height:1.6; padding-left:16px; margin:0;">
+            <li>Flatten the receipt on a flat surface</li>
+            <li>Make sure the text is in focus</li>
+            <li>Include the entire receipt in frame</li>
+            <li>Avoid shadows and glare</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a class="nav-item" href="dashboard.html">
+      <div class="nav-icon">🏠</div>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="pantry.html">
+      <div class="nav-icon">📦</div>
+      <span>Pantry</span>
+    </a>
+    <a class="nav-item active" href="scan.html">
+      <div class="nav-scan">
+        <div class="nav-icon">📷</div>
+      </div>
+      <span>Scan</span>
+    </a>
+    <a class="nav-item" href="recipes.html">
+      <div class="nav-icon">📖</div>
+      <span>Recipes</span>
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">⚙️</div>
+      <span>Settings</span>
+    </a>
+  </nav>
+</body>
+</html>
