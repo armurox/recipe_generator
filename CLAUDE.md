@@ -29,6 +29,52 @@ Full plan at `~/.claude/plans/parsed-riding-pumpkin.md`
 - **Top-level imports** — avoid imports inside functions; keep all imports at the top of the file
 - **Avoid ORM N+1 queries** — use `select_related()` for FK/OneToOne, `prefetch_related()` and `Prefetch` for reverse/M2M relations
 
+## Django 6.0+ Features
+Target Django 6.0+ and prefer its newer features over legacy patterns:
+- **Async ORM** — use `aget()`, `acreate()`, `afilter()`, `acount()`, etc. in async endpoints instead of `sync_to_async()` wrappers
+- **`db_default` auto-refresh** — fields with `db_default` or `GeneratedField` auto-refresh after `save()` on Postgres (no `refresh_from_db()` needed)
+- **`Model.NotUpdated` exception** — use `save(force_update=True)` and catch `Model.NotUpdated` for optimistic concurrency instead of generic `DatabaseError`
+- **`StringAgg` universal** — works on all backends now, not just Postgres
+- **Background tasks framework** — evaluate `django.tasks` for future background work (pantry expiry checks, batch operations) instead of Celery
+- **`BigAutoField` default** — Django 6.0 defaults `DEFAULT_AUTO_FIELD` to `BigAutoField`, no need to set it explicitly
+
+## Django Ninja Patterns
+Follow idiomatic Django Ninja conventions throughout the API:
+
+### Router structure
+- One `Router` per app (`users`, `receipts`, `pantry`, `recipes`), composed in `config/api.py`
+- Apply `SupabaseJWTAuth` globally on `NinjaAPI`, exempt public endpoints with `auth=None`
+- Use `tags=["app_name"]` on routers for Swagger grouping
+
+### Schemas
+- **Separate In/Out schemas** — never expose internal fields in output; use `Schema` for inputs and `ModelSchema` for simple output
+- **Multiple response codes** — declare all possible responses: `response={201: ItemOut, 404: ErrorOut, 409: ErrorOut}`
+- **Return QuerySets directly** from list endpoints — Django Ninja auto-serializes `list[Schema]` responses
+
+### Error handling
+- Register global exception handlers on `NinjaAPI` for `ObjectDoesNotExist` (404), `ValidationError` (422)
+- Use `HttpError(status, message)` for simple inline errors in endpoints
+- Use a shared `ErrorOut` schema (`detail: str`) for consistent error responses
+
+### Async endpoints
+- Use `async def` for endpoints that call external services (Claude Vision, Spoonacular) or do multiple DB queries
+- Pair with async ORM (`aget`, `acreate`, etc.) for fully non-blocking request handling under ASGI
+- Sync endpoints are fine for simple CRUD that only does one or two queries
+
+### Pagination
+- Use `@paginate(PageNumberPagination, page_size=20)` on list endpoints
+- Returns `{ items: [...], count: N }` format automatically
+
+### Authentication
+- `SupabaseJWTAuth(HttpBearer)` validates JWT, returns `User` as `request.auth`
+- Consider async `authenticate()` method since we run under ASGI
+
+## API Documentation
+Every API endpoint module (`api.py`) should include:
+- **Docstrings on each endpoint function** explaining what it does, key business logic decisions, and any non-obvious behavior
+- **Decision comments** (`# Decision:`) for design choices — why a particular approach was taken, trade-offs considered
+- **Schema field descriptions** using `Field(description="...")` for non-obvious fields in Swagger docs
+
 ## Key Patterns
 - All models inherit from `AbstractTimestampModel`, `AbstractIdTimestampModel`, or `AbstractUUIDTimestampModel` (defined in `core` app)
 - Receipt scanning uses async/await inline (no background task queue) — user waits for results

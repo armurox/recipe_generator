@@ -98,7 +98,5 @@ STORAGES = {
     },
 }
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 # Supabase JWT
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
