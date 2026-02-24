@@ -5,41 +5,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='IngredientCategory',
+            name="IngredientCategory",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100, unique=True)),
-                ('default_shelf_life', models.IntegerField(help_text='Default shelf life duration for items in this category')),
-                ('default_shelf_life_unit', models.CharField(default='days', max_length=20)),
-                ('icon', models.CharField(blank=True, max_length=50, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100, unique=True)),
+                (
+                    "default_shelf_life",
+                    models.IntegerField(help_text="Default shelf life duration for items in this category"),
+                ),
+                ("default_shelf_life_unit", models.CharField(default="days", max_length=20)),
+                ("icon", models.CharField(blank=True, max_length=50, null=True)),
             ],
             options={
-                'verbose_name_plural': 'ingredient categories',
-                'db_table': 'ingredient_categories',
+                "verbose_name_plural": "ingredient categories",
+                "db_table": "ingredient_categories",
             },
         ),
         migrations.CreateModel(
-            name='Ingredient',
+            name="Ingredient",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=200, unique=True)),
-                ('common_unit', models.CharField(default='piece', max_length=50)),
-                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='ingredients', to='ingredients.ingredientcategory')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=200, unique=True)),
+                ("common_unit", models.CharField(default="piece", max_length=50)),
+                (
+                    "category",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="ingredients",
+                        to="ingredients.ingredientcategory",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'ingredients',
+                "db_table": "ingredients",
             },
         ),
     ]

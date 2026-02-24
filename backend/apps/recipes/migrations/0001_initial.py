@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -17,60 +16,96 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Recipe',
+            name="Recipe",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('external_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('source', models.CharField(max_length=50)),
-                ('title', models.CharField(max_length=300)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('instructions', models.JSONField(default=list)),
-                ('ingredients_json', models.JSONField(default=list)),
-                ('prep_time_minutes', models.IntegerField(blank=True, null=True)),
-                ('cook_time_minutes', models.IntegerField(blank=True, null=True)),
-                ('servings', models.SmallIntegerField(blank=True, null=True)),
-                ('difficulty', models.CharField(blank=True, max_length=20, null=True)),
-                ('image_url', models.TextField(blank=True, null=True)),
-                ('nutrition', models.JSONField(blank=True, null=True)),
-                ('source_url', models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("external_id", models.CharField(blank=True, max_length=100, null=True)),
+                ("source", models.CharField(max_length=50)),
+                ("title", models.CharField(max_length=300)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("instructions", models.JSONField(default=list)),
+                ("ingredients_json", models.JSONField(default=list)),
+                ("prep_time_minutes", models.IntegerField(blank=True, null=True)),
+                ("cook_time_minutes", models.IntegerField(blank=True, null=True)),
+                ("servings", models.SmallIntegerField(blank=True, null=True)),
+                ("difficulty", models.CharField(blank=True, max_length=20, null=True)),
+                ("image_url", models.TextField(blank=True, null=True)),
+                ("nutrition", models.JSONField(blank=True, null=True)),
+                ("source_url", models.TextField(blank=True, null=True)),
             ],
             options={
-                'db_table': 'recipes',
-                'constraints': [models.UniqueConstraint(fields=('source', 'external_id'), name='unique_recipe_source_external_id')],
+                "db_table": "recipes",
+                "constraints": [
+                    models.UniqueConstraint(fields=("source", "external_id"), name="unique_recipe_source_external_id")
+                ],
             },
         ),
         migrations.CreateModel(
-            name='CookingLog',
+            name="CookingLog",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('cooked_at', models.DateTimeField(auto_now_add=True)),
-                ('rating', models.SmallIntegerField(blank=True, null=True, validators=[django.core.validators.MinValueValidator(1), django.core.validators.MaxValueValidator(5)])),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cooking_logs', to=settings.AUTH_USER_MODEL)),
-                ('recipe', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cooking_logs', to='recipes.recipe')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("cooked_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "rating",
+                    models.SmallIntegerField(
+                        blank=True,
+                        null=True,
+                        validators=[
+                            django.core.validators.MinValueValidator(1),
+                            django.core.validators.MaxValueValidator(5),
+                        ],
+                    ),
+                ),
+                ("notes", models.TextField(blank=True, null=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="cooking_logs",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "recipe",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="cooking_logs", to="recipes.recipe"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'cooking_log',
-                'ordering': ['-cooked_at'],
+                "db_table": "cooking_log",
+                "ordering": ["-cooked_at"],
             },
         ),
         migrations.CreateModel(
-            name='SavedRecipe',
+            name="SavedRecipe",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('recipe', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='saved_by', to='recipes.recipe')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='saved_recipes', to=settings.AUTH_USER_MODEL)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("notes", models.TextField(blank=True, null=True)),
+                (
+                    "recipe",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="saved_by", to="recipes.recipe"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="saved_recipes",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'saved_recipes',
-                'constraints': [models.UniqueConstraint(fields=('user', 'recipe'), name='unique_saved_recipe')],
+                "db_table": "saved_recipes",
+                "constraints": [models.UniqueConstraint(fields=("user", "recipe"), name="unique_saved_recipe")],
             },
         ),
     ]

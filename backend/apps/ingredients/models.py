@@ -5,9 +5,7 @@ from apps.core.models import AbstractIdTimestampModel
 
 class IngredientCategory(AbstractIdTimestampModel):
     name = models.CharField(max_length=100, unique=True)
-    default_shelf_life = models.IntegerField(
-        help_text="Default shelf life duration for items in this category"
-    )
+    default_shelf_life = models.IntegerField(help_text="Default shelf life duration for items in this category")
     default_shelf_life_unit = models.CharField(max_length=20, default="days")
     icon = models.CharField(max_length=50, blank=True, null=True)
 

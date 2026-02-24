@@ -7,48 +7,75 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('ingredients', '0001_initial'),
+        ("ingredients", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ReceiptScan',
+            name="ReceiptScan",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('image_url', models.TextField()),
-                ('store_name', models.CharField(blank=True, max_length=200, null=True)),
-                ('scanned_at', models.DateTimeField(auto_now_add=True)),
-                ('raw_extraction', models.JSONField(default=dict)),
-                ('status', models.CharField(choices=[('processing', 'Processing'), ('completed', 'Completed'), ('failed', 'Failed')], default='processing', max_length=20)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='receipt_scans', to=settings.AUTH_USER_MODEL)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("image_url", models.TextField()),
+                ("store_name", models.CharField(blank=True, max_length=200, null=True)),
+                ("scanned_at", models.DateTimeField(auto_now_add=True)),
+                ("raw_extraction", models.JSONField(default=dict)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("processing", "Processing"), ("completed", "Completed"), ("failed", "Failed")],
+                        default="processing",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="receipt_scans",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'receipt_scans',
-                'ordering': ['-scanned_at'],
+                "db_table": "receipt_scans",
+                "ordering": ["-scanned_at"],
             },
         ),
         migrations.CreateModel(
-            name='ReceiptItem',
+            name="ReceiptItem",
             fields=[
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('raw_text', models.CharField(max_length=300)),
-                ('quantity', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('unit', models.CharField(blank=True, max_length=50, null=True)),
-                ('price', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('ingredient', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='receipt_items', to='ingredients.ingredient')),
-                ('receipt', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='receipts.receiptscan')),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("raw_text", models.CharField(max_length=300)),
+                ("quantity", models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
+                ("unit", models.CharField(blank=True, max_length=50, null=True)),
+                ("price", models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
+                (
+                    "ingredient",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="receipt_items",
+                        to="ingredients.ingredient",
+                    ),
+                ),
+                (
+                    "receipt",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="items", to="receipts.receiptscan"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'receipt_items',
+                "db_table": "receipt_items",
             },
         ),
     ]
