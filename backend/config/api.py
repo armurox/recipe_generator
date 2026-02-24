@@ -5,6 +5,7 @@ from ninja import NinjaAPI
 
 from apps.pantry.api import router as pantry_router
 from apps.receipts.api import router as receipts_router
+from apps.recipes.api import router as recipes_router
 from apps.users.api import router as users_router
 from apps.users.auth import SupabaseJWTAuth
 
@@ -39,3 +40,4 @@ def health(request):
 api.add_router("/", users_router)
 api.add_router("/pantry", pantry_router)
 api.add_router("/receipts", receipts_router)
+api.add_router("/recipes", recipes_router)

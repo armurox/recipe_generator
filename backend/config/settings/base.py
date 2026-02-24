@@ -136,3 +136,7 @@ SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 # Anthropic (Claude Vision OCR)
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+
+# Spoonacular (Recipe API)
+SPOONACULAR_API_KEY = os.environ.get("SPOONACULAR_API_KEY", "")
+SPOONACULAR_BASE_URL = os.environ.get("SPOONACULAR_BASE_URL", "https://api.spoonacular.com")
