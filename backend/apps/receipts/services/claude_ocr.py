@@ -179,7 +179,7 @@ class ClaudeOCRProvider(OCRProvider):
                 ],
             )
         except anthropic.APIError as exc:
-            logger.error("[extract_receipt] Claude API error: %s", exc)
+            logger.exception("[extract_receipt] Claude API error")
             raise OCRExtractionError(f"Claude API error: {exc}") from exc
 
         logger.info(
@@ -196,7 +196,7 @@ class ClaudeOCRProvider(OCRProvider):
                 resp = await client.get(image_url, follow_redirects=True)
                 resp.raise_for_status()
         except httpx.HTTPError as exc:
-            logger.error("[_download_image] failed for %s: %s", image_url, exc)
+            logger.exception("[_download_image] failed for %s", image_url)
             raise OCRExtractionError(f"Failed to download image: {exc}") from exc
 
         logger.info("[_download_image] %d bytes from %s", len(resp.content), image_url)

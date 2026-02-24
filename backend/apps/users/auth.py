@@ -1,8 +1,12 @@
+import logging
+
 import jwt
 from django.conf import settings
 from ninja.security import HttpBearer
 
 from apps.users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 class SupabaseJWTAuth(HttpBearer):
@@ -17,15 +21,19 @@ class SupabaseJWTAuth(HttpBearer):
                 audience="authenticated",
             )
         except jwt.PyJWTError:
+            logger.warning("[authenticate] invalid JWT token")
             return None
 
         sub = payload.get("sub")
         if not sub:
+            logger.warning("[authenticate] JWT missing 'sub' claim")
             return None
 
         email = payload.get("email", "")
-        user, _ = await User.objects.aget_or_create(
+        user, created = await User.objects.aget_or_create(
             id=sub,
             defaults={"email": email},
         )
+        if created:
+            logger.info("[authenticate] auto-created user=%s email=%s", sub, email)
         return user

@@ -85,8 +85,10 @@ Every API endpoint module (`api.py`) should include:
 - Use Python's standard `logging` module — one logger per module: `logger = logging.getLogger(__name__)`
 - **Scope every log message** with `[function_name]` prefix for traceability: `logger.info("[scan_receipt] scan=%s completed", scan.id)`
 - Use appropriate levels: `DEBUG` for internal details (ingredient creation), `INFO` for request lifecycle (start, complete, counts), `WARNING` for recoverable issues, `ERROR` for failures
+- **Use `logger.exception()` in except blocks** — captures full stack trace automatically. Never use `logger.error("...: %s", exc)` to log caught exceptions
 - Include relevant identifiers (user ID, scan ID, item counts) as structured key=value pairs after the function prefix
 - Do not log sensitive data (tokens, passwords, full image data)
+- Log at `WARNING` level for expected-but-notable failures (auth failures, 404s). Reserve `ERROR`/`exception` for unexpected failures (API errors, download failures)
 
 ## Future Considerations
 - Evaluate cacheops / Redis for caching when query performance becomes a concern

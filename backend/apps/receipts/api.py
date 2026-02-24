@@ -53,7 +53,7 @@ async def scan_receipt(request, payload: ScanReceiptIn):
     except OCRExtractionError as exc:
         scan.status = ReceiptScan.Status.FAILED
         await scan.asave()
-        logger.error("[scan_receipt] OCR failed for scan=%s: %s", scan.id, exc)
+        logger.exception("[scan_receipt] OCR failed for scan=%s", scan.id)
         raise HttpError(502, f"Receipt extraction failed: {exc}")
 
     scan.store_name = result.store_name
