@@ -16,3 +16,6 @@ PASSWORD_HASHERS = [
 ]
 
 SUPABASE_JWT_SECRET = "test-supabase-jwt-secret"
+
+ANTHROPIC_API_KEY = "test-anthropic-key"
+ANTHROPIC_MODEL = "claude-sonnet-4-20250514"

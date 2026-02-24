@@ -6,7 +6,9 @@ from apps.users.models import User
 
 
 class SupabaseJWTAuth(HttpBearer):
-    def authenticate(self, request, token):
+    # Decision: async authenticate() since this runs on every request under ASGI.
+    # Uses aget_or_create for fully non-blocking auth resolution.
+    async def authenticate(self, request, token):
         try:
             payload = jwt.decode(
                 token,
@@ -22,7 +24,7 @@ class SupabaseJWTAuth(HttpBearer):
             return None
 
         email = payload.get("email", "")
-        user, _ = User.objects.get_or_create(
+        user, _ = await User.objects.aget_or_create(
             id=sub,
             defaults={"email": email},
         )
