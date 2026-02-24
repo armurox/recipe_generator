@@ -144,6 +144,14 @@ Swagger docs available at http://localhost:8000/api/v1/docs.
 | PATCH | `/api/v1/pantry/{id}` | Yes | Update item fields |
 | DELETE | `/api/v1/pantry/{id}` | Yes | Delete item |
 | POST | `/api/v1/pantry/{id}/use` | Yes | Mark item as partially/fully used |
+| GET | `/api/v1/recipes/suggest` | Yes | Suggest recipes from pantry ingredients |
+| GET | `/api/v1/recipes/search` | Yes | Search recipes by keyword |
+| GET | `/api/v1/recipes/saved` | Yes | List saved recipes (paginated) |
+| GET | `/api/v1/recipes/history` | Yes | Cooking history (paginated) |
+| GET | `/api/v1/recipes/{recipe_id}` | Yes | Get recipe detail (caches on first access) |
+| POST | `/api/v1/recipes/{recipe_id}/save` | Yes | Save recipe to collection |
+| DELETE | `/api/v1/recipes/{recipe_id}/save` | Yes | Remove recipe from collection |
+| POST | `/api/v1/recipes/{recipe_id}/cooked` | Yes | Log a cooking event |
 
 ---
 
@@ -365,9 +373,152 @@ Mark an item as partially or fully used. Only works on `available` items.
 
 ---
 
+### Recipes — `/api/v1/recipes`
+
+`{recipe_id}` accepts **either** an internal UUID (for cached recipes) **or** a Spoonacular external ID (for fresh results from suggest/search). When a Spoonacular ID is used for the first time, the recipe is fetched from the API and cached in the database.
+
+**GET /recipes/suggest** → `list[RecipeSummaryOut]`
+
+Suggests recipes based on the user's available pantry ingredients. Returns empty list if pantry is empty. User's `dietary_prefs` are automatically applied.
+
+Query params:
+- `?count=10` — number of results (default 10)
+
+Response:
+```json
+[
+  {
+    "id": null,
+    "external_id": "12345",
+    "source": "spoonacular",
+    "title": "Pasta Primavera",
+    "image_url": "https://img.spoonacular.com/...",
+    "used_ingredient_count": 3,
+    "missed_ingredient_count": 1,
+    "used_ingredients": ["tomato", "onion", "garlic"],
+    "missed_ingredients": ["basil"],
+    "is_saved": false
+  }
+]
+```
+
+Note: `id` is `null` for recipes not yet cached in the DB. Use `external_id` when calling other recipe endpoints (save, detail, cooked). `id` is populated if the recipe was previously viewed/saved.
+
+**GET /recipes/search** → `SearchResultsOut`
+
+Search recipes by keyword. User's `dietary_prefs` are merged with the explicit `diet` param.
+
+Query params:
+- `?q=pasta` — search query (**required**)
+- `?diet=vegan` — comma-separated diet filter (merged with user prefs)
+- `?page=1` — page number (default 1)
+- `?page_size=20` — results per page (default 20)
+
+Response:
+```json
+{
+  "items": [ "...RecipeSummaryOut..." ],
+  "total_results": 142
+}
+```
+
+Returns 400 if `q` is empty or missing.
+
+**GET /recipes/saved** → paginated `list[SavedRecipeOut]`
+
+Query params: `?page=1` (page_size=20). Returns `{ "items": [...], "count": N }`.
+
+Response `SavedRecipeOut`:
+```json
+{
+  "id": "uuid",
+  "recipe": { "...RecipeDetailOut..." },
+  "notes": "My favorite weeknight dinner",
+  "created_at": "2026-02-25T..."
+}
+```
+
+**GET /recipes/history** → paginated `list[CookingLogOut]`
+
+Query params: `?page=1` (page_size=20). Returns `{ "items": [...], "count": N }`. Newest first.
+
+Response `CookingLogOut`:
+```json
+{
+  "id": "uuid",
+  "recipe_id": "uuid",
+  "recipe_title": "Pasta Primavera",
+  "recipe_image_url": "https://img.spoonacular.com/...",
+  "cooked_at": "2026-02-25T...",
+  "rating": 5,
+  "notes": "Delicious!"
+}
+```
+
+**GET /recipes/{recipe_id}** → `RecipeDetailOut`
+
+Cache-on-first-access: if the recipe isn't in the DB, it's fetched from Spoonacular and stored.
+
+Response:
+```json
+{
+  "id": "uuid",
+  "external_id": "12345",
+  "source": "spoonacular",
+  "title": "Pasta Primavera",
+  "description": "A delicious pasta dish with...",
+  "instructions": [
+    { "step": 1, "text": "Boil pasta in salted water" },
+    { "step": 2, "text": "Sauté vegetables" }
+  ],
+  "ingredients_json": [
+    { "name": "pasta", "amount": 200, "unit": "g", "original": "200g pasta" },
+    { "name": "tomato", "amount": 2, "unit": "", "original": "2 tomatoes" }
+  ],
+  "prep_time_minutes": 10,
+  "cook_time_minutes": 20,
+  "servings": 4,
+  "difficulty": null,
+  "image_url": "https://img.spoonacular.com/...",
+  "nutrition": { "calories": { "amount": 350, "unit": "kcal" } },
+  "source_url": "https://example.com/pasta-primavera",
+  "is_saved": false,
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+**POST /recipes/{recipe_id}/save** → `SavedRecipeOut` (201)
+
+Save a recipe to the user's collection. Caches the recipe first if needed.
+
+Request (optional body):
+```json
+{ "notes": "Try this on Friday" }
+```
+
+Returns 409 if already saved.
+
+**DELETE /recipes/{recipe_id}/save** → 204
+
+Remove from saved collection. Returns 404 if not saved.
+
+**POST /recipes/{recipe_id}/cooked** → `CookingLogOut` (201)
+
+Log that the user cooked a recipe. No automatic pantry deduction.
+
+Request (optional body):
+```json
+{ "rating": 5, "notes": "Delicious!" }
+```
+
+`rating` must be 1–5 (or null). Returns 422 for invalid rating.
+
+---
+
 ### Pagination
 
-All paginated endpoints (`/receipts/`, `/pantry/`) return:
+All paginated endpoints (`/receipts/`, `/pantry/`, `/recipes/saved`, `/recipes/history`) return:
 ```json
 { "items": [...], "count": 142 }
 ```
@@ -382,7 +533,7 @@ All errors use a consistent `ErrorOut` schema:
 { "detail": "Human-readable error message" }
 ```
 
-Common status codes: 400 (validation), 401 (unauthenticated), 404 (not found), 502 (OCR provider failure).
+Common status codes: 400 (validation), 401 (unauthenticated), 404 (not found), 409 (conflict/duplicate), 422 (schema validation), 502 (external provider failure — OCR or recipe API).
 
 ## Management Commands
 
@@ -418,5 +569,7 @@ uv run python manage.py gen_test_token
 | `SUPABASE_JWT_SECRET` | Yes | JWT secret from Supabase dashboard > Settings > API |
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude Vision OCR |
 | `ANTHROPIC_MODEL` | No | Claude model override (default: `claude-sonnet-4-20250514`) |
+| `SPOONACULAR_API_KEY` | Yes | Spoonacular API key for recipe search/suggestions |
+| `SPOONACULAR_BASE_URL` | No | Spoonacular API base URL (default: `https://api.spoonacular.com`) |
 | `ALLOWED_HOSTS` | Prod | Comma-separated production domain(s) |
 | `CORS_ALLOWED_ORIGINS` | Prod | Frontend URL for CORS |
