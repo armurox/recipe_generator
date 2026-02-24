@@ -90,6 +90,102 @@ Every API endpoint module (`api.py`) should include:
 - Do not log sensitive data (tokens, passwords, full image data)
 - Log at `WARNING` level for expected-but-notable failures (auth failures, 404s). Reserve `ERROR`/`exception` for unexpected failures (API errors, download failures)
 
+## Frontend Tooling
+- **Package manager:** npm
+- **Linting:** ESLint (Next.js default config)
+- **Formatting:** Prettier
+- **Testing:** Vitest + React Testing Library for components/hooks, Playwright for e2e
+- **Bundle analysis:** `@next/bundle-analyzer` — run with `ANALYZE=true npm run build`
+
+## Frontend Code Style
+- **Path aliases** — use `@/` for all imports: `import { Button } from "@/components/ui/button"`, never relative `../../`
+- **Named exports** — prefer named exports for components. Default exports only for Next.js page/layout/error files (required by convention)
+- **Collocate components** — page-specific components go in `_components/` next to the page. Shared components go in `src/components/`
+- **TypeScript strict mode** — no `any`. Use `unknown` + type narrowing when the type is genuinely uncertain. Mirror backend API schemas as TS types in `src/types/`
+
+## Next.js App Router Patterns
+- **Server Components are the default** — only add `"use client"` when the component needs browser APIs (`useState`, `useEffect`, event handlers) or client-side libraries (TanStack Query, React Hook Form)
+- **Push `"use client"` down the tree** — page layouts, headings, and static shells should remain Server Components. Only interactive leaf components (data lists, forms, buttons) need `"use client"`
+- **Auth-aware architecture** — since Supabase Auth manages tokens client-side, the authenticated layout is a Client Component. Pages within it can still be Server Components that render Suspense boundaries around client data-fetching components
+- **Suspense boundaries per data source** — wrap each independent data-fetching component in `<Suspense fallback={<Skeleton />}>` so they stream independently
+- **`dynamic = "force-dynamic"`** — set on authenticated pages to prevent static caching of user-specific content
+- **React Compiler** — enable `experimental.reactCompiler` in `next.config.ts`. This eliminates the need for manual `React.memo`, `useMemo`, and `useCallback` in most cases. Write code without manual memoization first; add it only if profiling shows the compiler missed an optimization
+
+## Data Fetching & Caching
+Use **TanStack Query v5** for all client-side data fetching (not SWR):
+- Better mutation lifecycle, optimistic updates, and devtools
+- `useSuspenseQuery` for Suspense-compatible fetching
+
+### API client
+Thin `fetch` wrapper in `lib/api.ts` — reads Supabase session token, sets `Authorization: Bearer` header, throws typed `ApiError` on non-2xx. No Axios needed.
+
+### Query key conventions
+Hierarchical keys for targeted invalidation:
+- `["pantry", "items"]` — pantry list
+- `["pantry", "items", { status: "available" }]` — filtered pantry list
+- `["pantry", "expiring"]` — expiring items
+- `["pantry", "summary"]` — dashboard summary
+- `["recipes", "suggest"]`, `["recipes", "search", query]`, `["recipes", "saved"]`
+- `["recipes", "detail", id]`
+- `["user", "me"]` — current user profile
+
+### staleTime guidelines
+| Data type | staleTime | Rationale |
+|-----------|-----------|-----------|
+| User profile | `Infinity` | Rarely changes; invalidate manually on edit |
+| Pantry items | 2 min | Changes on scan/edit; keep reasonably fresh |
+| Recipe search/suggest | 5 min | External API, results stable per query |
+| Recipe detail | 30 min | Static content once cached |
+| Saved recipes | 2 min | User-driven changes |
+| Receipt scans | `Infinity` | Immutable once created |
+
+### Mutations
+- **Invalidate related queries** in `onSuccess` — e.g., pantry mutation invalidates `["pantry"]` (all pantry queries)
+- **Optimistic updates** for pantry use/delete — user sees immediate feedback, rolls back on error
+- **Global `onError`** on `QueryClient` catches 401s and triggers sign-out
+
+## State Management
+**TanStack Query + React Context + component state** — no Zustand needed:
+| State type | Solution |
+|------------|----------|
+| Server state (pantry, recipes, user) | TanStack Query |
+| Auth state (session, user, token) | React Context wrapping Supabase Auth |
+| Local UI state (form inputs, modals, tabs) | `useState` / `useReducer` |
+| Cross-cutting UI (toasts, global loading) | Sonner (via shadcn/ui `<Toaster>`) |
+
+Only add Zustand if a future feature requires complex cross-component UI state not covered by the above.
+
+## Form Handling
+Use **React Hook Form + Zod** for all forms (consistency over using different tools per form):
+- `useFieldArray` for dynamic lists (receipt review with 10+ editable items)
+- `zodResolver` for schema validation matching backend expectations
+- shadcn/ui `<Form>` / `<FormField>` / `<FormMessage>` components are built on React Hook Form — use them for accessible labels and inline error display
+
+## Frontend Performance
+- **`next/image`** for all images — configure `remotePatterns` for `img.spoonacular.com` and Supabase Storage domain. Use `sizes` attribute for responsive loading. Use `priority` on above-the-fold images only
+- **Dynamic imports** (`next/dynamic`) for heavy components not needed on initial paint: camera/scanner (`ssr: false`), recipe detail modals, charts. Show `<Skeleton>` as loading fallback
+- **Prefetching** — Next.js prefetches `<Link>` routes by default. Disable with `prefetch={false}` for rarely-visited routes (settings) to save bandwidth on mobile
+
+## Frontend Error Handling
+Layered strategy:
+1. **TanStack Query `onError` per mutation** — user-facing toast via Sonner for specific actions ("Failed to remove item")
+2. **Global mutation `onError` on QueryClient** — catch 401 → sign out and redirect to login
+3. **`error.tsx` per route segment** — catches unexpected rendering errors, shows retry button
+4. **`global-error.tsx` at root** — catastrophic fallback for root layout errors
+5. **`not-found.tsx`** — custom 404 page
+
+## Frontend Testing
+- **Component/hook tests (Vitest + Testing Library):** custom hooks (`usePantryItems`, `useAuth`) with `renderHook` + mocked QueryClient. Form components (receipt review validation, submission). API client error handling
+- **E2E tests (Playwright):** login flow, receipt scan → review → confirm → pantry, recipe search + save, pantry CRUD. Run against dev server with MSW mocking external APIs
+- **API mocking:** MSW (Mock Service Worker) for both local dev and tests — intercepts `fetch` calls to the backend, returns fixture data. Shared between Vitest and Playwright
+
+## PWA Setup
+Use **`@serwist/next`** (not `next-pwa`, which is unmaintained and incompatible with App Router):
+- Manifest via `src/app/manifest.ts` (Next.js Metadata API)
+- Service worker in `src/sw.ts` — precache static assets, runtime cache for API responses
+- **Cache strategy:** cache-first for static assets, network-first for API calls (show stale data if offline), stale-while-revalidate for Spoonacular recipe images
+- **v1 scope:** installable + offline read of cached pantry/recipes. No offline writes or background sync. Show offline indicator and disable mutating actions when offline
+
 ## Future Considerations
 - Evaluate cacheops / Redis for caching when query performance becomes a concern
 - Set up centralized logging pipeline (ELK / CloudWatch) on deployment — backend container logs piped to aggregator
