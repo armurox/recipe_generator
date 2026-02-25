@@ -12,13 +12,15 @@ import {
 } from "@/hooks/use-pantry";
 import { useCurrentUser } from "@/hooks/use-user";
 import type { PantryItem } from "@/types/api";
-import { Camera, CheckSquare } from "lucide-react";
+import { Camera, CheckSquare, Plus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AddItemDialog } from "./_components/add-item-dialog";
 import { BulkActionBar } from "./_components/bulk-action-bar";
 import { CategoryGroup } from "./_components/category-group";
 import { DeleteConfirmDialog } from "./_components/delete-confirm-dialog";
+import { EditItemSheet } from "./_components/edit-item-sheet";
 import { PantryFilters, type PantryFilter } from "./_components/pantry-filters";
 import { PantrySearch } from "./_components/pantry-search";
 
@@ -82,6 +84,13 @@ export default function PantryPage() {
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // Add item dialog state
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  // Edit item sheet state
+  const [editItem, setEditItem] = useState<PantryItem | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
 
   const updatePantryItem = useUpdatePantryItem();
   const deletePantryItem = useDeletePantryItem();
@@ -198,6 +207,11 @@ export default function PantryPage() {
     setPendingDeleteId(null);
   }
 
+  const handleEditItem = useCallback((item: PantryItem) => {
+    setEditItem(item);
+    setEditSheetOpen(true);
+  }, []);
+
   const isDeleting = deletePantryItem.isPending || bulkDeletePantryItems.isPending;
   const deleteCount = pendingDeleteId ? 1 : selectedIds.size;
 
@@ -223,6 +237,13 @@ export default function PantryPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAddDialogOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-green-700 text-white"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
           {displayItems.length > 0 && (
             <button
               type="button"
@@ -302,6 +323,7 @@ export default function PantryPage() {
                 onToggleSelect={toggleSelect}
                 onDeleteItem={handleDeleteItem}
                 onQuantityChange={handleQuantityChange}
+                onEditItem={handleEditItem}
               />
             ))}
           </div>
@@ -328,6 +350,12 @@ export default function PantryPage() {
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
       />
+
+      {/* Add item dialog */}
+      <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+
+      {/* Edit item sheet */}
+      <EditItemSheet item={editItem} open={editSheetOpen} onOpenChange={setEditSheetOpen} />
     </div>
   );
 }

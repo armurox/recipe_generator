@@ -12,6 +12,7 @@ type PantryItemRowProps = {
   onToggleSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onQuantityChange: (id: string, newQuantity: number) => void;
+  onEdit: (item: PantryItem) => void;
 };
 
 export function PantryItemRow({
@@ -21,6 +22,7 @@ export function PantryItemRow({
   onToggleSelect,
   onDelete,
   onQuantityChange,
+  onEdit,
 }: PantryItemRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -46,12 +48,23 @@ export function PantryItemRow({
     }
   }
 
+  function handleRowClick() {
+    if (isSelectMode || isEditing) return;
+    onEdit(item);
+  }
+
   return (
-    <div className="flex items-center gap-2 border-b border-gray-100 py-3 last:border-b-0">
+    <div
+      className="flex cursor-pointer items-center gap-2 border-b border-gray-100 py-3 last:border-b-0 active:bg-gray-50"
+      onClick={handleRowClick}
+    >
       {isSelectMode && (
         <button
           type="button"
-          onClick={() => onToggleSelect(item.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(item.id);
+          }}
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-[1.5px] ${
             isSelected ? "border-green-600 bg-green-600 text-white" : "border-gray-300 bg-white"
           }`}
@@ -74,14 +87,17 @@ export function PantryItemRow({
         {quantityDisplay && !isEditing && (
           <button
             type="button"
-            onClick={handleStartEdit}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartEdit();
+            }}
             className="mt-0.5 text-[13px] text-gray-500 underline decoration-dashed underline-offset-2"
           >
             {quantityDisplay}
           </button>
         )}
         {isEditing && (
-          <div className="mt-0.5 flex items-center gap-1">
+          <div className="mt-0.5 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <input
               ref={inputRef}
               type="number"
@@ -109,7 +125,10 @@ export function PantryItemRow({
       {!isSelectMode && (
         <button
           type="button"
-          onClick={() => onDelete(item.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(item.id);
+          }}
           className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500"
         >
           <Trash2 className="h-3.5 w-3.5" />

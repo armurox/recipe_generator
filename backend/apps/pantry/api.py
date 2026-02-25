@@ -21,7 +21,7 @@ from apps.pantry.schemas import (
     PantryItemUpdateIn,
     PantryItemUseIn,
 )
-from apps.pantry.services import calculate_expiry_date, get_or_create_ingredient
+from apps.pantry.services import calculate_expiry_date, get_or_create_ingredient, update_ingredient_category
 
 logger = logging.getLogger(__name__)
 
@@ -289,10 +289,11 @@ async def add_pantry_item(request, payload: PantryItemCreateIn):
 
 @router.patch("/{item_id}", response={200: PantryItemOut, 400: ErrorOut, 404: ErrorOut})
 async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn):
-    """Partially update a pantry item (quantity, unit, expiry_date, status).
+    """Partially update a pantry item (quantity, unit, expiry_date, status, category).
 
     Only fields provided in the request body are updated.
     Returns 400 for invalid status values.
+    category_hint updates the ingredient's category (creates category if needed).
     """
     try:
         item = await PantryItem.objects.select_related("ingredient__category").aget(id=item_id, user=request.auth)
@@ -310,8 +311,12 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
         item.unit = payload.unit
     if payload.expiry_date is not None:
         item.expiry_date = payload.expiry_date
+    if payload.category_hint is not None:
+        await update_ingredient_category(item.ingredient, payload.category_hint)
 
     await item.asave()
+    # Re-fetch to get updated ingredient category relation
+    item = await PantryItem.objects.select_related("ingredient__category").aget(id=item.id)
     logger.info("[update_pantry_item] item=%s updated", item.id)
     return await _build_pantry_item_response(item)
 

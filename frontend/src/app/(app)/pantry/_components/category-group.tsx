@@ -12,6 +12,7 @@ type CategoryGroupProps = {
   onToggleSelect: (id: string) => void;
   onDeleteItem: (id: string) => void;
   onQuantityChange: (id: string, newQuantity: number) => void;
+  onEditItem: (item: PantryItem) => void;
 };
 
 export function CategoryGroup({
@@ -23,6 +24,7 @@ export function CategoryGroup({
   onToggleSelect,
   onDeleteItem,
   onQuantityChange,
+  onEditItem,
 }: CategoryGroupProps) {
   return (
     <div className="mb-5">
@@ -40,6 +42,7 @@ export function CategoryGroup({
             onToggleSelect={onToggleSelect}
             onDelete={onDeleteItem}
             onQuantityChange={onQuantityChange}
+            onEdit={onEditItem}
           />
         ))}
       </div>

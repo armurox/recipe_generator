@@ -5,7 +5,10 @@ import type {
   BulkDeleteOutput,
   PaginatedResponse,
   PantryItem,
+  PantryItemCreateInput,
+  PantryItemCreateOutput,
   PantryItemUpdateInput,
+  PantryItemUseInput,
   PantrySummary,
 } from "@/types/api";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -136,6 +139,30 @@ export function useBulkDeletePantryItems() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => apiClient.post<BulkDeleteOutput>("/pantry/bulk-delete", { ids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
+    },
+  });
+}
+
+export function useAddPantryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: PantryItemCreateInput) =>
+      apiClient.post<PantryItemCreateOutput>("/pantry/", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
+    },
+  });
+}
+
+export function useUsePantryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: PantryItemUseInput }) =>
+      apiClient.post<PantryItem>(`/pantry/${id}/use`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });

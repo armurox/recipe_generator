@@ -55,6 +55,7 @@ class PantryItemUpdateIn(Schema):
     unit: str | None = None
     expiry_date: date | None = None
     status: str | None = Field(default=None, description="One of: available, expired, used_up")
+    category_hint: str | None = Field(default=None, description="Category name — creates category if it doesn't exist")
 
 
 class PantryItemUseIn(Schema):

@@ -65,6 +65,7 @@ export type PantryItemUpdateInput = {
   unit?: string | null;
   expiry_date?: string | null;
   status?: string | null;
+  category_hint?: string | null;
 };
 
 export type PantryItemUseInput = {
