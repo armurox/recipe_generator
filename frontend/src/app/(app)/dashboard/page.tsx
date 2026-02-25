@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrentUser } from "@/hooks/use-user";
+import { Settings } from "lucide-react";
 import { ExpiringList } from "./_components/expiring-list";
 import { QuickActions } from "./_components/quick-actions";
 import { RecipeSuggestions } from "./_components/recipe-suggestions";
@@ -15,11 +15,6 @@ function getGreeting(): string {
 }
 
 export default function DashboardPage() {
-  const { data: user } = useCurrentUser();
-
-  const initial =
-    user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
-
   return (
     <div>
       <div className="flex items-center justify-between px-5 pb-4 pt-3">
@@ -29,9 +24,9 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/settings"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-base font-semibold text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white"
         >
-          {initial}
+          <Settings size={18} />
         </Link>
       </div>
 
