@@ -111,6 +111,54 @@ class ListPantryItemsAPITest(TestCase):
         data = response.json()
         self.assertEqual(data["count"], 1)
 
+    def test_search_by_ingredient_name(self):
+        ing1 = IngredientFactory(name="chicken breast")
+        ing2 = IngredientFactory(name="cheddar cheese")
+        ing3 = IngredientFactory(name="brown rice")
+        PantryItemFactory(user=self.user, ingredient=ing1)
+        PantryItemFactory(user=self.user, ingredient=ing2)
+        PantryItemFactory(user=self.user, ingredient=ing3)
+
+        response = self.client.get(f"{BASE_URL}?search=chicken", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["items"][0]["ingredient"]["name"], "chicken breast")
+
+    def test_search_case_insensitive(self):
+        ing = IngredientFactory(name="greek yogurt")
+        PantryItemFactory(user=self.user, ingredient=ing)
+
+        response = self.client.get(f"{BASE_URL}?search=GREEK", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 1)
+
+    def test_search_partial_match(self):
+        ing1 = IngredientFactory(name="bell peppers")
+        ing2 = IngredientFactory(name="black pepper")
+        PantryItemFactory(user=self.user, ingredient=ing1)
+        PantryItemFactory(user=self.user, ingredient=ing2)
+
+        response = self.client.get(f"{BASE_URL}?search=pepper", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 2)
+
+    def test_search_no_results(self):
+        PantryItemFactory(user=self.user)
+        response = self.client.get(f"{BASE_URL}?search=nonexistent", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 0)
+
+    def test_search_combined_with_status_filter(self):
+        ing = IngredientFactory(name="whole milk")
+        PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE)
+        ing2 = IngredientFactory(name="almond milk")
+        PantryItemFactory(user=self.user, ingredient=ing2, status=PantryItem.Status.EXPIRED)
+
+        response = self.client.get(f"{BASE_URL}?search=milk&status=available", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["items"][0]["ingredient"]["name"], "whole milk")
+
     def test_includes_ingredient_detail(self):
         cat = IngredientCategoryFactory(name="Produce", icon="🥬")
         ing = IngredientFactory(name="spinach", category=cat)

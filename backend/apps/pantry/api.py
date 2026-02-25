@@ -72,10 +72,12 @@ async def list_pantry_items(
     status: str | None = None,
     expiring_within: int | None = None,
     category: int | None = None,
+    search: str | None = None,
 ):
     """List the authenticated user's pantry items with optional filters.
 
-    Supports filtering by status, expiring_within (days), and category ID.
+    Supports filtering by status, expiring_within (days), category ID,
+    and search (case-insensitive ingredient name match).
     Items are ordered by expiry date (soonest first).
     """
     qs = PantryItem.objects.filter(user=request.auth).select_related("ingredient__category")
@@ -87,6 +89,8 @@ async def list_pantry_items(
         qs = qs.filter(expiry_date__isnull=False, expiry_date__lte=cutoff, status=PantryItem.Status.AVAILABLE)
     if category is not None:
         qs = qs.filter(ingredient__category_id=category)
+    if search:
+        qs = qs.filter(ingredient__name__icontains=search.strip())
 
     return qs
 

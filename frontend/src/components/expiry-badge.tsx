@@ -35,10 +35,10 @@ function getExpiryInfo(expiryDate: string | null): {
     return { label: "Today", color: "expired", dateStr };
   }
   if (diffDays === 1) {
-    return { label: "Tomorrow", color: "soon", dateStr };
+    return { label: "Expiring tomorrow", color: "soon", dateStr };
   }
   if (diffDays <= 3) {
-    return { label: `${diffDays} days`, color: "soon", dateStr };
+    return { label: `Expiring in ${diffDays} days`, color: "soon", dateStr };
   }
   if (diffDays <= 30) {
     return { label: `${diffDays} days`, color: "ok", dateStr };

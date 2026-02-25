@@ -1,7 +1,8 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePantryItems, usePantrySummary } from "@/hooks/use-pantry";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import { usePantryItems, usePantrySearch, usePantrySummary } from "@/hooks/use-pantry";
 import { useCurrentUser } from "@/hooks/use-user";
 import type { PantryItem } from "@/types/api";
 import { Camera } from "lucide-react";
@@ -47,9 +48,21 @@ function groupByCategory(items: PantryItem[]): GroupedItems[] {
   return sorted;
 }
 
+function mergeItems(clientItems: PantryItem[], serverItems: PantryItem[]): PantryItem[] {
+  const seen = new Set(clientItems.map((item) => item.id));
+  const merged = [...clientItems];
+  for (const item of serverItems) {
+    if (!seen.has(item.id)) {
+      merged.push(item);
+    }
+  }
+  return merged;
+}
+
 export default function PantryPage() {
   const [filter, setFilter] = useState<PantryFilter>("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
   const { data: user } = useCurrentUser();
 
   const queryFilters = useMemo(() => {
@@ -59,17 +72,36 @@ export default function PantryPage() {
     return {};
   }, [filter]);
 
-  const { data, isLoading } = usePantryItems(queryFilters);
+  const { data, isLoading, isPlaceholderData } = usePantryItems(queryFilters);
   const { data: summary } = usePantrySummary();
+  const {
+    data: serverSearchData,
+    isLoading: isSearching,
+  } = usePantrySearch(debouncedSearch, queryFilters);
 
-  const filtered = useMemo(() => {
+  const isActiveSearch = search.trim().length > 0;
+
+  // Client-side instant filter on currently loaded items
+  const clientFiltered = useMemo(() => {
     const items = data?.items ?? [];
-    if (!search.trim()) return items;
+    if (!isActiveSearch) return items;
     const q = search.toLowerCase();
     return items.filter((item) => item.ingredient.name.toLowerCase().includes(q));
-  }, [data?.items, search]);
+  }, [data?.items, search, isActiveSearch]);
 
-  const groups = useMemo(() => groupByCategory(filtered), [filtered]);
+  // Merge client-side results with server results (server may have items from other pages)
+  const displayItems = useMemo(() => {
+    if (!isActiveSearch) return clientFiltered;
+    const serverItems = serverSearchData?.items ?? [];
+    return mergeItems(clientFiltered, serverItems);
+  }, [isActiveSearch, clientFiltered, serverSearchData?.items]);
+
+  const groups = useMemo(() => groupByCategory(displayItems), [displayItems]);
+
+  // Show skeleton when: initial load, OR client-side search found nothing and server is still searching
+  const showSearchSkeleton =
+    isActiveSearch && clientFiltered.length === 0 && isSearching && debouncedSearch.length > 0;
+  const showSkeleton = isLoading || showSearchSkeleton;
 
   const initial = user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
 
@@ -78,9 +110,20 @@ export default function PantryPage() {
       <div className="flex items-center justify-between px-5 pb-4 pt-3">
         <div>
           <h1 className="text-[28px] font-bold text-gray-900">Pantry</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {summary ? `${summary.total_available} items tracked` : "Loading..."}
-          </p>
+          {summary ? (
+            <>
+              <p className="mt-0.5 text-sm text-gray-500">
+                {summary.total_available} {summary.total_available === 1 ? "item" : "items"} available for use
+              </p>
+              {summary.total_expiring_soon > 0 && (
+                <p className="text-sm text-orange-500">
+                  {summary.total_expiring_soon} expiring soon
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mt-0.5 text-sm text-gray-500">Loading...</p>
+          )}
         </div>
         <Link
           href="/settings"
@@ -94,7 +137,7 @@ export default function PantryPage() {
         <PantrySearch value={search} onChange={setSearch} />
         <PantryFilters active={filter} onChange={setFilter} />
 
-        {isLoading ? (
+        {showSkeleton ? (
           <div className="space-y-4">
             {[0, 1, 2].map((i) => (
               <div key={i}>
@@ -107,14 +150,14 @@ export default function PantryPage() {
           <div className="px-5 py-10 text-center">
             <div className="mb-3 text-5xl">📦</div>
             <h2 className="mb-2 text-lg font-semibold">
-              {search ? "No items found" : "Your pantry is empty"}
+              {isActiveSearch ? "No items found" : "Your pantry is empty"}
             </h2>
             <p className="mb-4 text-sm text-gray-500">
-              {search
+              {isActiveSearch
                 ? `No items matching "${search}"`
                 : "Scan a receipt to start tracking your groceries"}
             </p>
-            {!search && (
+            {!isActiveSearch && (
               <Link
                 href="/scan"
                 className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-3 text-sm font-semibold text-white"
@@ -125,14 +168,16 @@ export default function PantryPage() {
             )}
           </div>
         ) : (
-          groups.map((group) => (
-            <CategoryGroup
-              key={group.categoryName}
-              categoryName={group.categoryName}
-              categoryIcon={group.categoryIcon}
-              items={group.items}
-            />
-          ))
+          <div className={isPlaceholderData || isSearching ? "opacity-50 transition-opacity" : "transition-opacity"}>
+            {groups.map((group) => (
+              <CategoryGroup
+                key={group.categoryName}
+                categoryName={group.categoryName}
+                categoryIcon={group.categoryIcon}
+                items={group.items}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

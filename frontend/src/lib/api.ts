@@ -1,20 +1,17 @@
 import { ApiError } from "@/lib/api-error";
-import { createClient } from "@/lib/supabase";
+import { getAccessToken } from "@/lib/auth-token";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+function getAuthHeaders(): Record<string, string> {
+  const token = getAccessToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (session?.access_token) {
-    headers["Authorization"] = `Bearer ${session.access_token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   return headers;
@@ -41,7 +38,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const apiClient = {
   async get<T>(path: string): Promise<T> {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const response = await fetch(`${BASE_URL}${path}`, {
       method: "GET",
       headers,
@@ -50,7 +47,7 @@ export const apiClient = {
   },
 
   async post<T>(path: string, body?: unknown): Promise<T> {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const response = await fetch(`${BASE_URL}${path}`, {
       method: "POST",
       headers,
@@ -60,7 +57,7 @@ export const apiClient = {
   },
 
   async patch<T>(path: string, body: unknown): Promise<T> {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const response = await fetch(`${BASE_URL}${path}`, {
       method: "PATCH",
       headers,
@@ -70,7 +67,7 @@ export const apiClient = {
   },
 
   async delete<T = void>(path: string): Promise<T> {
-    const headers = await getAuthHeaders();
+    const headers = getAuthHeaders();
     const response = await fetch(`${BASE_URL}${path}`, {
       method: "DELETE",
       headers,

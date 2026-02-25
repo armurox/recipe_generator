@@ -1,5 +1,6 @@
 "use client";
 
+import { setAccessToken } from "@/lib/auth-token";
 import { createClient } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -28,15 +29,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
+      setAccessToken(initialSession?.access_token ?? null);
       setIsLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (also handles token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      setAccessToken(newSession?.access_token ?? null);
       setIsLoading(false);
     });
 

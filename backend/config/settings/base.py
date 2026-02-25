@@ -130,7 +130,8 @@ LOGGING = {
     },
 }
 
-# Supabase JWT
+# Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
 # Anthropic (Claude Vision OCR)
