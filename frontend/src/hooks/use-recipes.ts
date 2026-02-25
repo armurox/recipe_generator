@@ -2,14 +2,74 @@
 
 import { apiClient } from "@/lib/api";
 import type {
+  CookingLog,
   CookingLogInput,
+  PaginatedResponse,
   RecipeDetail,
   SavedRecipe,
   SearchResults,
   SuggestRecipesResponse,
 } from "@/types/api";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type InfiniteData,
+  type QueryClient,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect } from "react";
+import { toast } from "sonner";
+
+// ---------------------------------------------------------------------------
+// Optimistic is_saved toggle across all recipe caches
+// ---------------------------------------------------------------------------
+
+function updateIsSavedInCache(qc: QueryClient, recipeId: string, isSaved: boolean) {
+  const matches = (item: { id?: string | null; external_id?: string | null }) =>
+    item.id === recipeId || item.external_id === recipeId;
+
+  type WithSaved = { id?: string | null; external_id?: string | null; is_saved: boolean };
+  const toggle = <T extends WithSaved>(items: T[]): T[] =>
+    items.map((item) => (matches(item) ? { ...item, is_saved: isSaved } : item));
+
+  // Recipe detail
+  qc.setQueriesData<RecipeDetail>({ queryKey: ["recipes", "detail"] }, (old) =>
+    old && matches(old) ? { ...old, is_saved: isSaved } : old,
+  );
+
+  // Infinite suggest (recipes page)
+  qc.setQueriesData<InfiniteData<SuggestRecipesResponse, number>>(
+    { queryKey: ["recipes", "suggest", "infinite"] },
+    (old) =>
+      old ? { ...old, pages: old.pages.map((p) => ({ ...p, items: toggle(p.items) })) } : old,
+  );
+
+  // Regular suggest (dashboard)
+  qc.setQueriesData<SuggestRecipesResponse>(
+    {
+      queryKey: ["recipes", "suggest"],
+      predicate: (q) => !q.queryKey.includes("infinite"),
+    },
+    (old) => (old ? { ...old, items: toggle(old.items) } : old),
+  );
+
+  // Infinite search
+  qc.setQueriesData<InfiniteData<SearchResults, number>>(
+    { queryKey: ["recipes", "search", "infinite"] },
+    (old) =>
+      old ? { ...old, pages: old.pages.map((p) => ({ ...p, items: toggle(p.items) })) } : old,
+  );
+
+  // Saved list — remove on unsave
+  if (!isSaved) {
+    qc.setQueriesData<PaginatedResponse<SavedRecipe>>({ queryKey: ["recipes", "saved"] }, (old) => {
+      if (!old) return old;
+      const items = old.items.filter((s) => !matches(s.recipe));
+      return { items, count: items.length };
+    });
+  }
+}
 
 export function useRecipeSuggestions(pageSize: number = 10) {
   return useQuery({
@@ -157,7 +217,21 @@ export function useSaveRecipe() {
   return useMutation({
     mutationFn: ({ recipeId, notes }: { recipeId: string; notes?: string }) =>
       apiClient.post<SavedRecipe>(`/recipes/${recipeId}/save`, notes ? { notes } : undefined),
-    onSuccess: () => {
+    onMutate: async ({ recipeId }) => {
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      const snapshot = queryClient.getQueriesData({ queryKey: ["recipes"] });
+      updateIsSavedInCache(queryClient, recipeId, true);
+      return { snapshot };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.snapshot) {
+        for (const [key, data] of context.snapshot) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast.error("Failed to save recipe");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
   });
@@ -167,9 +241,31 @@ export function useUnsaveRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (recipeId: string) => apiClient.delete(`/recipes/${recipeId}/save`),
-    onSuccess: () => {
+    onMutate: async (recipeId) => {
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      const snapshot = queryClient.getQueriesData({ queryKey: ["recipes"] });
+      updateIsSavedInCache(queryClient, recipeId, false);
+      return { snapshot };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.snapshot) {
+        for (const [key, data] of context.snapshot) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+      toast.error("Failed to unsave recipe");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
+  });
+}
+
+export function useCookingHistory() {
+  return useQuery({
+    queryKey: ["recipes", "history"],
+    queryFn: () => apiClient.get<PaginatedResponse<CookingLog>>("/recipes/history"),
+    staleTime: 2 * 60 * 1000,
   });
 }
 

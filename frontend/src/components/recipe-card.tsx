@@ -68,11 +68,11 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           <button
             type="button"
             onClick={handleSaveToggle}
-            className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90"
+            className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 transition-transform hover:scale-110 active:scale-90"
           >
             <Heart
               size={18}
-              className={recipe.is_saved ? "fill-red-500 text-red-500" : "text-gray-600"}
+              className={`transition-colors ${recipe.is_saved ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-400"}`}
             />
           </button>
         </div>

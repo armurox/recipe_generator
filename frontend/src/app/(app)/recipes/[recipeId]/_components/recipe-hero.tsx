@@ -84,9 +84,12 @@ export function RecipeHero({ title, imageUrl, isSaved, recipeId }: RecipeHeroPro
           <button
             type="button"
             onClick={handleSaveToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 transition-transform hover:scale-110 active:scale-90"
           >
-            <Heart size={20} className={isSaved ? "fill-red-500 text-red-500" : "text-gray-600"} />
+            <Heart
+              size={20}
+              className={`transition-colors ${isSaved ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-400"}`}
+            />
           </button>
           <button
             type="button"
