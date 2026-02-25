@@ -62,8 +62,8 @@ Follow idiomatic Django Ninja conventions throughout the API:
 - Sync endpoints are fine for simple CRUD that only does one or two queries
 
 ### Pagination
-- Use `@paginate(PageNumberPagination, page_size=20)` on list endpoints
-- Returns `{ items: [...], count: N }` format automatically
+- Use `@paginate(PageNumberPagination, page_size=20)` on list endpoints — returns `{ items: [...], count: N }` format automatically
+- For Spoonacular-proxied endpoints (suggest, search), use manual `page`/`page_size` params with `offset = (page - 1) * page_size` — Spoonacular provides `totalResults` for proper client-side pagination
 
 ### Authentication
 - `SupabaseJWTAuth(HttpBearer)` validates JWT, returns `User` as `request.auth`
@@ -80,6 +80,7 @@ Every API endpoint module (`api.py`) should include:
 - Receipt scanning uses async/await inline (no background task queue) — user waits for results
 - `receipt_items.ingredient_id` is nullable for non-food receipt lines (TAX, BAGS, etc.)
 - Service abstractions: OCRProvider and RecipeProvider interfaces for swappable implementations
+- **Spoonacular boolean params** — always pass as string `"true"`/`"false"`, not Python `True`/`False`. `httpx` serializes Python booleans with capital first letter (`"True"`) which Spoonacular doesn't reliably accept
 
 ## Logging
 - Use Python's standard `logging` module — one logger per module: `logger = logging.getLogger(__name__)`
@@ -125,8 +126,11 @@ Hierarchical keys for targeted invalidation:
 - `["pantry", "items", { status: "available" }]` — filtered pantry list
 - `["pantry", "expiring"]` — expiring items
 - `["pantry", "summary"]` — dashboard summary
-- `["recipes", "suggest"]`, `["recipes", "search", query]`, `["recipes", "saved"]`
+- `["recipes", "suggest", { pageSize }]` — single-page suggestions (dashboard)
+- `["recipes", "suggest", "infinite", { pageSize }]` — infinite scroll suggestions (recipes page)
+- `["recipes", "search", "infinite", { q, diet, pageSize, maxReadyTime }]` — infinite search
 - `["recipes", "detail", id]`
+- `["recipes", "saved"]`, `["recipes", "history"]`
 - `["user", "me"]` — current user profile
 
 ### staleTime guidelines
@@ -165,6 +169,9 @@ Use **React Hook Form + Zod** for all forms (consistency over using different to
 - **`next/image`** for all images — configure `remotePatterns` for `img.spoonacular.com` and Supabase Storage domain. Use `sizes` attribute for responsive loading. Use `priority` on above-the-fold images only
 - **Dynamic imports** (`next/dynamic`) for heavy components not needed on initial paint: camera/scanner (`ssr: false`), recipe detail modals, charts. Show `<Skeleton>` as loading fallback
 - **Prefetching** — Next.js prefetches `<Link>` routes by default. Disable with `prefetch={false}` for rarely-visited routes (settings) to save bandwidth on mobile
+- **Infinite scroll** — use callback ref pattern (`useCallback` as ref) with `IntersectionObserver`, not `useEffect` + `useRef`. Callback refs fire at the exact moment the DOM node appears/disappears, eliminating timing gaps between early-return loading states and sentinel rendering. Use 1200px `rootMargin` for prefetching ~5 items ahead
+- **Tab prefetching** — use `queryClient.prefetchInfiniteQuery` on page mount to warm the cache for tabs the user hasn't visited yet
+- **HTML sanitization** — third-party HTML content (e.g. Spoonacular descriptions) must be sanitized via DOMPurify before rendering with `dangerouslySetInnerHTML`. Only allow safe formatting tags (`b`, `strong`, `i`, `em`, `a`)
 
 ## Frontend Error Handling
 Layered strategy:
