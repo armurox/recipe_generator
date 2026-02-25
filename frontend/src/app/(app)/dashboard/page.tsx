@@ -1,27 +1,44 @@
 "use client";
 
-import { useAuth } from "@/lib/auth-context";
+import { useCurrentUser } from "@/hooks/use-user";
+import { ExpiringList } from "./_components/expiring-list";
+import { QuickActions } from "./_components/quick-actions";
+import { RecipeSuggestions } from "./_components/recipe-suggestions";
+import { StatsRow } from "./_components/stats-row";
+import Link from "next/link";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning!";
+  if (hour < 18) return "Good afternoon!";
+  return "Good evening!";
+}
 
 export default function DashboardPage() {
-  const { user, signOut } = useAuth();
+  const { data: user } = useCurrentUser();
+
+  const initial = user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
 
   return (
-    <div className="px-5 pt-4">
-      <div className="mb-4 flex items-center justify-between">
+    <div>
+      <div className="flex items-center justify-between px-5 pb-4 pt-3">
         <div>
-          <h1 className="text-[28px] font-bold text-gray-900">Home</h1>
-          <p className="text-sm text-gray-500">Welcome back{user?.email ? `, ${user.email}` : ""}</p>
+          <h1 className="text-[28px] font-bold text-gray-900">{getGreeting()}</h1>
+          <p className="mt-0.5 text-sm text-gray-500">Here&apos;s your pantry overview</p>
         </div>
-        <button
-          onClick={() => signOut()}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-sm font-semibold text-white"
+        <Link
+          href="/settings"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-base font-semibold text-white"
         >
-          {user?.email?.charAt(0).toUpperCase() ?? "?"}
-        </button>
+          {initial}
+        </Link>
       </div>
-      <div className="rounded-xl bg-white p-6 text-center shadow-sm">
-        <p className="text-lg font-medium text-gray-700">Dashboard</p>
-        <p className="mt-1 text-sm text-gray-500">Coming in step 7a</p>
+
+      <div className="px-5 pb-24">
+        <StatsRow />
+        <QuickActions />
+        <ExpiringList />
+        <RecipeSuggestions />
       </div>
     </div>
   );
