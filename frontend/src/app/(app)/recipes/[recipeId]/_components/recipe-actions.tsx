@@ -39,7 +39,7 @@ export function RecipeActions({ recipeId, isSaved }: RecipeActionsProps) {
       },
       {
         onSuccess: () => {
-          toast.success("Cooking logged!");
+          toast.success("Noted!");
           setShowCookDialog(false);
           setRating(0);
           setNotes("");
@@ -105,7 +105,7 @@ export function RecipeActions({ recipeId, isSaved }: RecipeActionsProps) {
               disabled={cookMutation.isPending}
               className="w-full rounded-xl bg-green-700 py-2.5 text-[15px] font-semibold text-white disabled:opacity-50"
             >
-              {cookMutation.isPending ? "Saving..." : "Log Cooking"}
+              {cookMutation.isPending ? "Saving..." : "Submit"}
             </button>
             <button
               type="button"
