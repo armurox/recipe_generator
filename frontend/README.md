@@ -35,20 +35,42 @@ npm run dev
 |-------|--------|-------------|
 | `/login` | Done | Email/password + Google OAuth login |
 | `/register` | Done | Account registration |
-| `/dashboard` | Placeholder | Home screen |
-| `/pantry` | Placeholder | Pantry inventory |
-| `/scan` | Placeholder | Receipt scanning |
+| `/dashboard` | Done | Pantry summary stats, expiring items, recipe suggestions (infinite scroll, popular fallback) |
+| `/pantry` | Done | Pantry inventory grouped by category, search, filters, tap-to-edit quantity, single + bulk delete |
+| `/scan` | Done | Receipt upload (camera/gallery), image compression, recent scans with status badges |
+| `/scan/[scanId]` | Done | Review extracted items, edit name/qty/unit, confirm or discard. Read-only view for confirmed scans |
 | `/recipes` | Placeholder | Recipe search/suggestions |
 | `/settings` | Placeholder | User settings |
 
 ## Architecture
 
+### Core libraries
 - `src/lib/supabase.ts` — Supabase browser client
 - `src/lib/auth-context.tsx` — Auth state via React Context
 - `src/lib/api.ts` — Typed fetch wrapper with auth headers
-- `src/lib/query-client.ts` — TanStack Query config
+- `src/lib/query-client.ts` — TanStack Query config (global 401 → sign out)
 - `src/lib/providers.tsx` — Combined providers (Auth + Query + Toaster)
+- `src/lib/upload.ts` — Supabase Storage upload with image compression
+
+### Types & hooks
 - `src/types/api.ts` — TypeScript types mirroring backend schemas
-- `src/components/bottom-nav.tsx` — 5-tab bottom navigation
-- `src/app/(auth)/` — Public routes (login, register)
-- `src/app/(app)/` — Authenticated routes with bottom nav
+- `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, update, delete, bulk-delete)
+- `src/hooks/use-receipts.ts` — Receipt queries + mutations (scans, scan detail, scan receipt, confirm, delete)
+- `src/hooks/use-recipes.ts` — Recipe suggestions (returns `SuggestRecipesResponse` with `using_pantry_ingredients` flag)
+- `src/hooks/use-user.ts` — Current user profile
+
+### Shared components
+- `src/components/bottom-nav.tsx` — 5-tab bottom navigation with raised scan FAB
+- `src/components/recipe-card.tsx` — Recipe card with image, title, ingredient match badges
+- `src/components/expiry-badge.tsx` — Expiry status text ("Expired", "Expiring in N days")
+
+### Route structure
+- `src/app/(auth)/` — Public routes (login, register) — redirects to dashboard if authenticated
+- `src/app/(app)/` — Authenticated routes with bottom nav — redirects to login if not authenticated
+
+## Key Patterns
+
+- **Optimistic updates:** `useUpdatePantryItem` uses `onMutate`/`onError`/`onSettled` to update UI immediately and roll back on failure
+- **Cache invalidation:** Pantry mutations invalidate `["recipes", "suggest"]` with `refetchType: "all"` so dashboard stays fresh
+- **Infinite scroll:** Recipe suggestions use `IntersectionObserver` with 200px rootMargin to auto-load batches of 3
+- **Popular fallback:** When pantry is empty, suggestions show popular Spoonacular recipes with adjusted messaging
