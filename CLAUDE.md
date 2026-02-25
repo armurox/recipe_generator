@@ -173,6 +173,15 @@ Use **React Hook Form + Zod** for all forms (consistency over using different to
 - **Tab prefetching** — use `queryClient.prefetchInfiniteQuery` on page mount to warm the cache for tabs the user hasn't visited yet
 - **HTML sanitization** — third-party HTML content (e.g. Spoonacular descriptions) must be sanitized via DOMPurify before rendering with `dangerouslySetInnerHTML`. Only allow safe formatting tags (`b`, `strong`, `i`, `em`, `a`)
 
+## Frontend Modals & Sheets
+- **Width constraint** — all dialogs and bottom sheets must use `max-w-md` (or narrower like `w-64`) to stay within the app container. The app layout uses `max-w-md mx-auto`, so fixed/absolute overlays that don't constrain width will overflow on desktop
+- **Bottom sheets** — use shadcn `Sheet` with `side="bottom"` and `mx-auto max-w-md` on `SheetContent`. Cap height with `max-h-[70vh] overflow-y-auto`
+- **Dialog sizing for PWA** — prefer narrow, tall card proportions (e.g. `w-64`) with stacked full-width buttons. Side-by-side buttons look cramped on mobile
+- **Form state sync** — use key-based remount (`key={item.id}`) instead of `useEffect` + `setState` to sync form state with prop changes (React Compiler lint rule: `react-hooks/set-state-in-effect`)
+
+## API Client Trailing Slashes
+Django's `APPEND_SLASH` setting cannot redirect POST/PATCH/DELETE requests. All mutation URLs in the API client must include a trailing slash (e.g. `/pantry/`, not `/pantry`). GET requests work without trailing slashes because Django can redirect them.
+
 ## Frontend Error Handling
 Layered strategy:
 1. **TanStack Query `onError` per mutation** — user-facing toast via Sonner for specific actions ("Failed to remove item")

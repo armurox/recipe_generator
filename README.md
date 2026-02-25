@@ -83,8 +83,8 @@ For Google OAuth to work, configure the redirect URL in your Supabase dashboard:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/pantry` | List pantry items (filterable by status, expiry, category, search) |
-| POST | `/api/v1/pantry` | Add item manually (upserts if existing) |
-| PATCH | `/api/v1/pantry/{id}` | Update item (quantity, unit, expiry, status) |
+| POST | `/api/v1/pantry` | Add item manually (upserts if existing). `category_hint` auto-creates category |
+| PATCH | `/api/v1/pantry/{id}` | Update item (quantity, unit, expiry, status, category_hint) |
 | DELETE | `/api/v1/pantry/{id}` | Delete item |
 | POST | `/api/v1/pantry/{id}/use` | Mark as used (partial or full) |
 | POST | `/api/v1/pantry/bulk-delete` | Delete multiple items (max 100) |

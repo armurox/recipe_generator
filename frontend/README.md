@@ -36,7 +36,7 @@ npm run dev
 | `/login` | Done | Email/password + Google OAuth login |
 | `/register` | Done | Account registration |
 | `/dashboard` | Done | Pantry summary stats, expiring items, recipe suggestions (infinite scroll, popular fallback) |
-| `/pantry` | Done | Pantry inventory grouped by category, search, filters, tap-to-edit quantity, single + bulk delete |
+| `/pantry` | Done | Pantry inventory grouped by category, search, filters, tap-to-edit quantity, single + bulk delete, add item dialog, edit item bottom sheet, use item (partial/full), category management |
 | `/scan` | Done | Receipt upload (camera/gallery), image compression, recent scans with status badges |
 | `/scan/[scanId]` | Done | Review extracted items, edit name/qty/unit, confirm or discard. Read-only view for confirmed scans |
 | `/recipes` | Done | Recipe suggestions (For You), search with filter tabs (Quick Meals, Healthy, Vegetarian), infinite scroll on all tabs, 3-layer merge search |
@@ -56,7 +56,7 @@ npm run dev
 
 ### Types & hooks
 - `src/types/api.ts` — TypeScript types mirroring backend schemas
-- `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, update, delete, bulk-delete)
+- `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, add, update, delete, bulk-delete, use)
 - `src/hooks/use-receipts.ts` — Receipt queries + mutations (scans, scan detail, scan receipt, confirm, delete)
 - `src/hooks/use-recipes.ts` — Recipe queries + mutations (suggestions, infinite search, detail, save/unsave, cooking log, tab prefetching)
 - `src/hooks/use-user.ts` — Current user profile
@@ -79,3 +79,5 @@ npm run dev
 - **3-layer merge search:** Client-side filter from cached suggestions → merge with server search results → smart loading states for instant feedback
 - **Tab prefetching:** On recipes page load, first page of Quick Meals, Healthy, and Vegetarian tabs are prefetched for instant switching
 - **HTML sanitization:** Recipe descriptions from Spoonacular are sanitized via DOMPurify and rendered with styled inline HTML (bold, links)
+- **Pantry write operations:** AddItemDialog (header "+"), EditItemSheet (tap row → bottom sheet), UseItem (partial/full consumption). Category field uses `<datalist>` for autocomplete from existing categories. All dialogs/sheets constrained to `max-w-md` app container
+- **Category auto-creation:** Backend creates new `IngredientCategory` when `category_hint` doesn't match existing categories (7-day default shelf life). Supported on both create and update endpoints
