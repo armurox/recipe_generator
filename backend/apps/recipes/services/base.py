@@ -43,8 +43,13 @@ class RecipeProvider(ABC):
         ingredients: list[str],
         count: int = 10,
         dietary: list[str] | None = None,
-    ) -> list[RecipeSummary]:
-        """Find recipes that use the given ingredients."""
+        offset: int = 0,
+    ) -> tuple[list[RecipeSummary], int | None]:
+        """Find recipes that use the given ingredients.
+
+        Returns (results, total_results). total_results is None when the
+        provider cannot determine the total (e.g. findByIngredients endpoint).
+        """
 
     @abstractmethod
     async def get_recipe_detail(self, external_id: str) -> RecipeDetail:
@@ -55,8 +60,12 @@ class RecipeProvider(ABC):
         self,
         count: int = 10,
         dietary: list[str] | None = None,
-    ) -> list[RecipeSummary]:
-        """Get popular/trending recipes (no ingredient input required)."""
+        offset: int = 0,
+    ) -> tuple[list[RecipeSummary], int]:
+        """Get popular/trending recipes (no ingredient input required).
+
+        Returns (results, total_results).
+        """
 
     @abstractmethod
     async def search(
@@ -65,5 +74,6 @@ class RecipeProvider(ABC):
         dietary: list[str] | None = None,
         count: int = 20,
         offset: int = 0,
+        max_ready_time: int | None = None,
     ) -> tuple[list[RecipeSummary], int]:
         """Search recipes by keyword. Returns (results, total_count)."""

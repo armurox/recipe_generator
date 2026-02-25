@@ -42,6 +42,11 @@ class SuggestRecipesOut(Schema):
         description="True if suggestions are based on the user's pantry; False if showing popular fallback recipes"
     )
     items: list[RecipeSummaryOut]
+    total_results: int | None = Field(
+        default=None,
+        description="Total number of matching recipes, or null when unknown (e.g. findByIngredients). "
+        "Used by the frontend to determine if more pages are available.",
+    )
 
 
 class SearchResultsOut(Schema):

@@ -81,17 +81,17 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           <h3 className="mb-1.5 text-base font-semibold">{recipe.title}</h3>
           {(recipe.used_ingredients.length > 0 || recipe.missed_ingredients.length > 0) && (
             <div className="flex flex-wrap gap-1.5">
-              {recipe.used_ingredients.map((name) => (
+              {recipe.used_ingredients.map((name, i) => (
                 <span
-                  key={name}
+                  key={`used-${i}`}
                   className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
                 >
                   {name}
                 </span>
               ))}
-              {recipe.missed_ingredients.map((name) => (
+              {recipe.missed_ingredients.map((name, i) => (
                 <span
-                  key={name}
+                  key={`missed-${i}`}
                   className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500"
                 >
                   {name}

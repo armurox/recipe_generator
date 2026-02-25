@@ -155,7 +155,7 @@ class SuggestRecipesAPITest(TestCase):
         self.auth = make_auth_header(self.user)
 
     def test_suggest_with_pantry_items(self, mock_provider):
-        mock_provider.find_by_ingredients = AsyncMock(return_value=[MOCK_SUMMARY, MOCK_SUMMARY_2])
+        mock_provider.find_by_ingredients = AsyncMock(return_value=([MOCK_SUMMARY, MOCK_SUMMARY_2], None))
         ing1 = IngredientFactory(name="tomato")
         ing2 = IngredientFactory(name="onion")
         PantryItemFactory(user=self.user, ingredient=ing1, status=PantryItem.Status.AVAILABLE)
@@ -166,6 +166,7 @@ class SuggestRecipesAPITest(TestCase):
         data = resp.json()
         self.assertTrue(data["using_pantry_ingredients"])
         self.assertEqual(len(data["items"]), 2)
+        self.assertIsNone(data["total_results"])
         self.assertEqual(data["items"][0]["title"], "Pasta Primavera")
         self.assertEqual(data["items"][0]["used_ingredient_count"], 3)
         self.assertFalse(data["items"][0]["is_saved"])
@@ -178,17 +179,18 @@ class SuggestRecipesAPITest(TestCase):
         self.assertIn("onion", ingredients_arg)
 
     def test_suggest_empty_pantry_returns_popular(self, mock_provider):
-        mock_provider.get_popular = AsyncMock(return_value=[MOCK_SUMMARY, MOCK_SUMMARY_2])
+        mock_provider.get_popular = AsyncMock(return_value=([MOCK_SUMMARY, MOCK_SUMMARY_2], 50))
         resp = self.client.get(f"{BASE_URL}/suggest", **self.auth)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertFalse(data["using_pantry_ingredients"])
         self.assertEqual(len(data["items"]), 2)
+        self.assertEqual(data["total_results"], 50)
         mock_provider.find_by_ingredients.assert_not_called()
         mock_provider.get_popular.assert_awaited_once()
 
     def test_suggest_with_dietary_prefs(self, mock_provider):
-        mock_provider.find_by_ingredients = AsyncMock(return_value=[MOCK_SUMMARY])
+        mock_provider.find_by_ingredients = AsyncMock(return_value=([MOCK_SUMMARY], 10))
         self.user.dietary_prefs = ["vegetarian"]
         self.user.save()
 
@@ -203,7 +205,7 @@ class SuggestRecipesAPITest(TestCase):
 
     def test_suggest_only_available_items(self, mock_provider):
         """Used-up and expired pantry items should not be included."""
-        mock_provider.find_by_ingredients = AsyncMock(return_value=[])
+        mock_provider.find_by_ingredients = AsyncMock(return_value=([], None))
         ing1 = IngredientFactory(name="fresh tomato")
         ing2 = IngredientFactory(name="old milk")
 
@@ -228,7 +230,7 @@ class SuggestRecipesAPITest(TestCase):
 
     def test_suggest_is_saved_annotation(self, mock_provider):
         """Saved recipes should be annotated with is_saved=True."""
-        mock_provider.find_by_ingredients = AsyncMock(return_value=[MOCK_SUMMARY, MOCK_SUMMARY_2])
+        mock_provider.find_by_ingredients = AsyncMock(return_value=([MOCK_SUMMARY, MOCK_SUMMARY_2], None))
         recipe = RecipeFactory(source="spoonacular", external_id="12345")
         SavedRecipeFactory(user=self.user, recipe=recipe)
 
@@ -249,15 +251,16 @@ class SuggestRecipesAPITest(TestCase):
         resp = self.client.get(f"{BASE_URL}/suggest")
         self.assertEqual(resp.status_code, 401)
 
-    def test_suggest_custom_count(self, mock_provider):
-        mock_provider.find_by_ingredients = AsyncMock(return_value=[MOCK_SUMMARY])
+    def test_suggest_pagination(self, mock_provider):
+        mock_provider.find_by_ingredients = AsyncMock(return_value=([MOCK_SUMMARY], 50))
         ing = IngredientFactory(name="tomato")
         PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE)
 
-        resp = self.client.get(f"{BASE_URL}/suggest?count=5", **self.auth)
+        resp = self.client.get(f"{BASE_URL}/suggest?page=2&page_size=10", **self.auth)
         self.assertEqual(resp.status_code, 200)
         call_kwargs = mock_provider.find_by_ingredients.call_args
-        self.assertEqual(call_kwargs.kwargs["count"], 5)
+        self.assertEqual(call_kwargs.kwargs["count"], 10)
+        self.assertEqual(call_kwargs.kwargs["offset"], 10)  # (2-1)*10
 
 
 # ---------------------------------------------------------------------------
@@ -373,19 +376,46 @@ class SearchRecipesAPITest(TestCase):
         self.assertIn("vegetarian", dietary)
         self.assertIn("gluten free", dietary)
 
-    def test_search_empty_query(self, mock_provider):
+    def test_search_empty_query_no_diet(self, mock_provider):
         resp = self.client.get(f"{BASE_URL}/search?q=", **self.auth)
         self.assertEqual(resp.status_code, 400)
 
-    def test_search_missing_query(self, mock_provider):
+    def test_search_missing_query_no_diet(self, mock_provider):
         resp = self.client.get(f"{BASE_URL}/search", **self.auth)
         self.assertEqual(resp.status_code, 400)
+
+    def test_search_diet_only_no_query(self, mock_provider):
+        """Diet-only search (no q) should work — used by filter tabs."""
+        mock_provider.search = AsyncMock(return_value=([MOCK_SUMMARY], 25))
+
+        resp = self.client.get(f"{BASE_URL}/search?diet=vegetarian", **self.auth)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data["items"]), 1)
+        self.assertEqual(data["total_results"], 25)
+
+        call_kwargs = mock_provider.search.call_args
+        self.assertEqual(call_kwargs.kwargs["query"], "")
+        self.assertIn("vegetarian", call_kwargs.kwargs["dietary"])
 
     def test_search_provider_error(self, mock_provider):
         mock_provider.search = AsyncMock(side_effect=RecipeProviderError("API down"))
 
         resp = self.client.get(f"{BASE_URL}/search?q=pasta", **self.auth)
         self.assertEqual(resp.status_code, 502)
+
+    def test_search_max_ready_time(self, mock_provider):
+        """max_ready_time filter should be passed to provider — used by Quick Meals tab."""
+        mock_provider.search = AsyncMock(return_value=([MOCK_SUMMARY], 100))
+
+        resp = self.client.get(f"{BASE_URL}/search?max_ready_time=30", **self.auth)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data["items"]), 1)
+        self.assertEqual(data["total_results"], 100)
+
+        call_kwargs = mock_provider.search.call_args
+        self.assertEqual(call_kwargs.kwargs["max_ready_time"], 30)
 
     def test_search_pagination(self, mock_provider):
         mock_provider.search = AsyncMock(return_value=([MOCK_SUMMARY], 50))

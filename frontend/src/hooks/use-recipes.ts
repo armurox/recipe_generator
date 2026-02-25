@@ -8,25 +8,64 @@ import type {
   SearchResults,
   SuggestRecipesResponse,
 } from "@/types/api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export function useRecipeSuggestions(count: number = 10) {
+export function useRecipeSuggestions(pageSize: number = 10) {
   return useQuery({
-    queryKey: ["recipes", "suggest", { count }],
-    queryFn: () => apiClient.get<SuggestRecipesResponse>(`/recipes/suggest?count=${count}`),
+    queryKey: ["recipes", "suggest", { pageSize }],
+    queryFn: () =>
+      apiClient.get<SuggestRecipesResponse>(`/recipes/suggest?page=1&page_size=${pageSize}`),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useRecipeSearch(query: string, diet?: string, page: number = 1) {
-  const params = new URLSearchParams({ q: query, page: String(page) });
-  if (diet) params.set("diet", diet);
-
-  return useQuery({
-    queryKey: ["recipes", "search", { q: query, diet, page }],
-    queryFn: () => apiClient.get<SearchResults>(`/recipes/search?${params}`),
+export function useInfiniteRecipeSuggestions(pageSize: number = 10) {
+  return useInfiniteQuery({
+    queryKey: ["recipes", "suggest", "infinite", { pageSize }],
+    queryFn: ({ pageParam = 1 }) =>
+      apiClient.get<SuggestRecipesResponse>(
+        `/recipes/suggest?page=${pageParam}&page_size=${pageSize}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const fetched = lastPageParam * pageSize;
+      // When total_results is known, check if we've fetched everything
+      if (lastPage.total_results !== null && fetched >= lastPage.total_results) return undefined;
+      // When total_results is null (findByIngredients), use page size heuristic
+      if (lastPage.items.length < pageSize) return undefined;
+      return lastPageParam + 1;
+    },
     staleTime: 5 * 60 * 1000,
-    enabled: query.trim().length > 0,
+  });
+}
+
+export function useInfiniteRecipeSearch(
+  query: string,
+  diet?: string,
+  pageSize: number = 10,
+  maxReadyTime?: number,
+) {
+  return useInfiniteQuery({
+    queryKey: ["recipes", "search", "infinite", { q: query, diet, pageSize, maxReadyTime }],
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams({
+        page: String(pageParam),
+        page_size: String(pageSize),
+      });
+      if (query.trim()) params.set("q", query);
+      if (diet) params.set("diet", diet);
+      if (maxReadyTime) params.set("max_ready_time", String(maxReadyTime));
+      return apiClient.get<SearchResults>(`/recipes/search?${params}`);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const fetched = lastPageParam * pageSize;
+      if (fetched >= lastPage.total_results) return undefined;
+      if (lastPage.items.length < pageSize) return undefined;
+      return lastPageParam + 1;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: query.trim().length > 0 || !!diet || !!maxReadyTime,
   });
 }
 

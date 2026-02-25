@@ -32,26 +32,32 @@ class SpoonacularProvider(RecipeProvider):
         ingredients: list[str],
         count: int = 10,
         dietary: list[str] | None = None,
-    ) -> list[RecipeSummary]:
+        offset: int = 0,
+    ) -> tuple[list[RecipeSummary], int | None]:
         """Find recipes by ingredient list.
 
-        When dietary prefs are present, switches from findByIngredients to
-        complexSearch with includeIngredients + diet, since findByIngredients
-        doesn't support diet filters.
+        When dietary prefs are present or offset > 0, uses complexSearch with
+        includeIngredients + diet, since findByIngredients doesn't support
+        diet filters or reliable offset pagination.
         """
         logger.info(
-            "[find_by_ingredients] ingredients=%d count=%d dietary=%s",
+            "[find_by_ingredients] ingredients=%d count=%d dietary=%s offset=%d",
             len(ingredients),
             count,
             dietary,
+            offset,
         )
 
-        if dietary:
-            return await self._find_by_ingredients_complex(ingredients, count, dietary)
+        if dietary or offset > 0:
+            return await self._find_by_ingredients_complex(ingredients, count, dietary or [], offset)
         return await self._find_by_ingredients_simple(ingredients, count)
 
-    async def _find_by_ingredients_simple(self, ingredients: list[str], count: int) -> list[RecipeSummary]:
-        """Use /recipes/findByIngredients — provides used/missed ingredient data."""
+    async def _find_by_ingredients_simple(self, ingredients: list[str], count: int) -> tuple[list[RecipeSummary], None]:
+        """Use /recipes/findByIngredients — provides used/missed ingredient data.
+
+        Returns (results, None) since this endpoint doesn't report total_results.
+        Only used for first-page requests without dietary filters.
+        """
         url = f"{self.base_url}/recipes/findByIngredients"
         params = {
             "ingredients": ",".join(ingredients),
@@ -76,58 +82,64 @@ class SpoonacularProvider(RecipeProvider):
                 )
             )
         logger.info("[find_by_ingredients_simple] returned %d results", len(results))
-        return results
+        return results, None
 
     async def _find_by_ingredients_complex(
-        self, ingredients: list[str], count: int, dietary: list[str]
-    ) -> list[RecipeSummary]:
+        self, ingredients: list[str], count: int, dietary: list[str], offset: int = 0
+    ) -> tuple[list[RecipeSummary], int]:
         """Use /recipes/complexSearch with includeIngredients + diet.
 
-        Decision: findByIngredients doesn't support diet filters. When dietary
-        prefs are present, we use complexSearch instead, which loses the
-        used/missed ingredient breakdown but respects dietary restrictions.
+        Decision: findByIngredients doesn't support diet filters or reliable
+        pagination. When dietary prefs are present or offset > 0, we use
+        complexSearch instead, which provides totalResults for pagination.
         """
         url = f"{self.base_url}/recipes/complexSearch"
         params = {
             "includeIngredients": ",".join(ingredients),
-            "diet": ",".join(dietary),
             "number": count,
+            "offset": offset,
             "sort": "min-missing-ingredients",
             "fillIngredients": True,
-        }
-
-        data = await self._request(url, params)
-        results = []
-        for item in data.get("results", []):
-            results.append(self._parse_complex_result(item))
-        logger.info("[find_by_ingredients_complex] returned %d results", len(results))
-        return results
-
-    async def get_popular(
-        self,
-        count: int = 10,
-        dietary: list[str] | None = None,
-    ) -> list[RecipeSummary]:
-        """Get popular recipes via /recipes/complexSearch sorted by popularity.
-
-        Decision: Uses complexSearch with sort=popularity and no query/ingredients,
-        providing a generic fallback when the user's pantry is empty.
-        """
-        logger.info("[get_popular] count=%d dietary=%s", count, dietary)
-        url = f"{self.base_url}/recipes/complexSearch"
-        params = {
-            "sort": "popularity",
-            "number": count,
         }
         if dietary:
             params["diet"] = ",".join(dietary)
 
         data = await self._request(url, params)
+        total = data.get("totalResults", 0)
         results = []
         for item in data.get("results", []):
             results.append(self._parse_complex_result(item))
-        logger.info("[get_popular] returned %d results", len(results))
-        return results
+        logger.info("[find_by_ingredients_complex] returned %d of %d total results", len(results), total)
+        return results, total
+
+    async def get_popular(
+        self,
+        count: int = 10,
+        dietary: list[str] | None = None,
+        offset: int = 0,
+    ) -> tuple[list[RecipeSummary], int]:
+        """Get popular recipes via /recipes/complexSearch sorted by popularity.
+
+        Decision: Uses complexSearch with sort=popularity and no query/ingredients,
+        providing a generic fallback when the user's pantry is empty.
+        """
+        logger.info("[get_popular] count=%d dietary=%s offset=%d", count, dietary, offset)
+        url = f"{self.base_url}/recipes/complexSearch"
+        params = {
+            "sort": "popularity",
+            "number": count,
+            "offset": offset,
+        }
+        if dietary:
+            params["diet"] = ",".join(dietary)
+
+        data = await self._request(url, params)
+        total = data.get("totalResults", 0)
+        results = []
+        for item in data.get("results", []):
+            results.append(self._parse_complex_result(item))
+        logger.info("[get_popular] returned %d of %d total results", len(results), total)
+        return results, total
 
     async def get_recipe_detail(self, external_id: str) -> RecipeDetail:
         """Fetch full recipe details from /recipes/{id}/information."""
@@ -144,24 +156,29 @@ class SpoonacularProvider(RecipeProvider):
         dietary: list[str] | None = None,
         count: int = 20,
         offset: int = 0,
+        max_ready_time: int | None = None,
     ) -> tuple[list[RecipeSummary], int]:
         """Search recipes via /recipes/complexSearch."""
         logger.info(
-            "[search] query=%r dietary=%s count=%d offset=%d",
+            "[search] query=%r dietary=%s count=%d offset=%d max_ready_time=%s",
             query,
             dietary,
             count,
             offset,
+            max_ready_time,
         )
         url = f"{self.base_url}/recipes/complexSearch"
         params = {
-            "query": query,
             "number": count,
             "offset": offset,
             "fillIngredients": True,
         }
+        if query:
+            params["query"] = query
         if dietary:
             params["diet"] = ",".join(dietary)
+        if max_ready_time is not None:
+            params["maxReadyTime"] = max_ready_time
 
         data = await self._request(url, params)
         total = data.get("totalResults", 0)

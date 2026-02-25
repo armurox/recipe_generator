@@ -104,18 +104,19 @@ async def _annotate_is_saved(user, summaries: list[RecipeSummaryOut]) -> list[Re
 
 
 @router.get("/suggest", response=SuggestRecipesOut)
-async def suggest_recipes(request, count: int = 10):
+async def suggest_recipes(request, page: int = 1, page_size: int = 20):
     """Suggest recipes based on the user's available pantry ingredients.
 
     Queries the pantry for available items, extracts ingredient names, and
     asks the recipe provider for matching recipes. Respects the user's
-    dietary_prefs if set.
+    dietary_prefs if set. Supports pagination via page/page_size.
 
     Decision: When the pantry is empty, returns popular recipes as a fallback
     with using_pantry_ingredients=False so the frontend can adjust its messaging.
     """
     user = request.auth
-    logger.info("[suggest_recipes] user=%s count=%d", user.id, count)
+    offset = (page - 1) * page_size
+    logger.info("[suggest_recipes] user=%s page=%d page_size=%d offset=%d", user.id, page, page_size, offset)
 
     dietary = user.dietary_prefs if user.dietary_prefs else None
 
@@ -134,16 +135,18 @@ async def suggest_recipes(request, count: int = 10):
 
     try:
         if ingredient_names:
-            summaries = await recipe_provider.find_by_ingredients(
+            summaries, total = await recipe_provider.find_by_ingredients(
                 ingredients=ingredient_names,
-                count=count,
+                count=page_size,
                 dietary=dietary,
+                offset=offset,
             )
         else:
             logger.info("[suggest_recipes] user=%s has empty pantry, fetching popular recipes", user.id)
-            summaries = await recipe_provider.get_popular(
-                count=count,
+            summaries, total = await recipe_provider.get_popular(
+                count=page_size,
                 dietary=dietary,
+                offset=offset,
             )
     except RecipeProviderError as exc:
         logger.exception("[suggest_recipes] provider error for user=%s", user.id)
@@ -174,7 +177,7 @@ async def suggest_recipes(request, count: int = 10):
                 r.id = recipe.id
 
     results = await _annotate_is_saved(user, results)
-    return SuggestRecipesOut(using_pantry_ingredients=using_pantry, items=results)
+    return SuggestRecipesOut(using_pantry_ingredients=using_pantry, items=results, total_results=total)
 
 
 @router.get("/search", response=SearchResultsOut)
@@ -182,17 +185,19 @@ async def search_recipes(
     request,
     q: str = "",
     diet: str | None = None,
+    max_ready_time: int | None = None,
     page: int = 1,
     page_size: int = 20,
 ):
-    """Search recipes by keyword with optional diet filter.
+    """Search recipes by keyword, diet filter, and/or max ready time.
 
     Decision: No @paginate decorator — offset calculated and passed directly
     to Spoonacular since it provides total_results for proper pagination.
-    Diet param is merged with user's dietary_prefs.
+    Diet param is merged with user's dietary_prefs. At least one of q, diet,
+    or max_ready_time must be provided.
     """
-    if not q.strip():
-        raise HttpError(400, "Search query 'q' is required")
+    if not q.strip() and not diet and max_ready_time is None:
+        raise HttpError(400, "Search query 'q', 'diet' filter, or 'max_ready_time' is required")
 
     user = request.auth
     offset = (page - 1) * page_size
@@ -220,6 +225,7 @@ async def search_recipes(
             dietary=dietary,
             count=page_size,
             offset=offset,
+            max_ready_time=max_ready_time,
         )
     except RecipeProviderError as exc:
         logger.exception("[search_recipes] provider error")

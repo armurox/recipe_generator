@@ -189,6 +189,7 @@ export type RecipeDetail = {
 export type SuggestRecipesResponse = {
   using_pantry_ingredients: boolean;
   items: RecipeSummary[];
+  total_results: number | null;
 };
 
 export type SearchResults = {
