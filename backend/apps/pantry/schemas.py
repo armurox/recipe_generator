@@ -61,6 +61,14 @@ class PantryItemUseIn(Schema):
     quantity: Decimal | None = Field(default=None, description="Quantity to consume; omit to use all")
 
 
+class BulkDeleteIn(Schema):
+    ids: list[uuid.UUID] = Field(description="List of pantry item IDs to delete")
+
+
+class BulkDeleteOut(Schema):
+    deleted_count: int = Field(description="Number of items actually deleted")
+
+
 class CategorySummaryOut(Schema):
     category_id: int | None = None
     category_name: str

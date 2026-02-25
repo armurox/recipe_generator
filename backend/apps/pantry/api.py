@@ -11,6 +11,8 @@ from apps.core.schemas import ErrorOut
 from apps.ingredients.models import IngredientCategory
 from apps.pantry.models import PantryItem
 from apps.pantry.schemas import (
+    BulkDeleteIn,
+    BulkDeleteOut,
     CategorySummaryOut,
     PantryItemCreateIn,
     PantryItemCreateOut,
@@ -188,6 +190,37 @@ async def pantry_summary(request):
         total_expiring_soon=total_expiring_soon,
         categories=categories,
     )
+
+
+# ---------------------------------------------------------------------------
+# Bulk operations
+# ---------------------------------------------------------------------------
+
+
+@router.post("/bulk-delete", response={200: BulkDeleteOut, 400: ErrorOut})
+async def bulk_delete_pantry_items(request, payload: BulkDeleteIn):
+    """Delete multiple pantry items in a single operation.
+
+    Only deletes items owned by the authenticated user. Returns the count of
+    items actually deleted (silently skips IDs that don't exist or belong to
+    another user).
+    """
+    if not payload.ids:
+        raise HttpError(400, "No item IDs provided")
+
+    if len(payload.ids) > 100:
+        raise HttpError(400, "Cannot delete more than 100 items at once")
+
+    result = await PantryItem.objects.filter(id__in=payload.ids, user=request.auth).adelete()
+    deleted_count = result[0]
+
+    logger.info(
+        "[bulk_delete_pantry_items] user=%s requested=%d deleted=%d",
+        request.auth.id,
+        len(payload.ids),
+        deleted_count,
+    )
+    return {"deleted_count": deleted_count}
 
 
 # ---------------------------------------------------------------------------

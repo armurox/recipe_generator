@@ -7,6 +7,7 @@ class ReceiptScan(AbstractUUIDTimestampModel):
     class Status(models.TextChoices):
         PROCESSING = "processing", "Processing"
         COMPLETED = "completed", "Completed"
+        CONFIRMED = "confirmed", "Confirmed"
         FAILED = "failed", "Failed"
 
     user = models.ForeignKey(

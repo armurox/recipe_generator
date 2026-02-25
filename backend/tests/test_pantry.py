@@ -495,3 +495,73 @@ class PantrySummaryAPITest(TestCase):
         self.assertEqual(data["total_items"], 0)
         self.assertEqual(data["total_available"], 0)
         self.assertEqual(data["categories"], [])
+
+
+class BulkDeletePantryAPITest(TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.auth = make_auth_header(self.user)
+
+    def test_bulk_delete_own_items(self):
+        items = [PantryItemFactory(user=self.user) for _ in range(3)]
+        ids = [str(item.id) for item in items]
+        response = self.client.post(
+            f"{BASE_URL}bulk-delete",
+            data=json.dumps({"ids": ids}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["deleted_count"], 3)
+        self.assertEqual(PantryItem.objects.filter(user=self.user).count(), 0)
+
+    def test_skips_other_users_items(self):
+        own_item = PantryItemFactory(user=self.user)
+        other_item = PantryItemFactory()  # different user
+        response = self.client.post(
+            f"{BASE_URL}bulk-delete",
+            data=json.dumps({"ids": [str(own_item.id), str(other_item.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["deleted_count"], 1)
+        # Other user's item still exists
+        self.assertTrue(PantryItem.objects.filter(id=other_item.id).exists())
+
+    def test_empty_ids_400(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-delete",
+            data=json.dumps({"ids": []}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_nonexistent_ids_return_zero(self):
+        import uuid
+
+        fake_ids = [str(uuid.uuid4()) for _ in range(2)]
+        response = self.client.post(
+            f"{BASE_URL}bulk-delete",
+            data=json.dumps({"ids": fake_ids}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["deleted_count"], 0)
+
+    def test_partial_match(self):
+        """Some IDs exist (owned by user), some don't — only existing ones are deleted."""
+        import uuid
+
+        item = PantryItemFactory(user=self.user)
+        response = self.client.post(
+            f"{BASE_URL}bulk-delete",
+            data=json.dumps({"ids": [str(item.id), str(uuid.uuid4())]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["deleted_count"], 1)
+        self.assertFalse(PantryItem.objects.filter(id=item.id).exists())

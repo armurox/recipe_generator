@@ -40,10 +40,7 @@ function getExpiryInfo(expiryDate: string | null): {
   if (diffDays <= 3) {
     return { label: `Expiring in ${diffDays} days`, color: "soon", dateStr };
   }
-  if (diffDays <= 30) {
-    return { label: `${diffDays} days`, color: "ok", dateStr };
-  }
-  return { label: `${diffDays} days`, color: "ok", dateStr };
+  return { label: `Expiring in ${diffDays} days`, color: "ok", dateStr };
 }
 
 const colorClasses = {

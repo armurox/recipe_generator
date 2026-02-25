@@ -367,6 +367,28 @@ class ConfirmReceiptAPITest(TestCase):
         self.assertIn("category_name", item_data["ingredient"])
         self.assertIn("category_icon", item_data["ingredient"])
 
+    def test_confirm_transitions_to_confirmed_status(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"items": [{"receipt_item_id": self.item.id}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.scan.refresh_from_db()
+        self.assertEqual(self.scan.status, ReceiptScan.Status.CONFIRMED)
+
+    def test_confirm_already_confirmed_scan_409(self):
+        self.scan.status = ReceiptScan.Status.CONFIRMED
+        self.scan.save()
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"items": [{"receipt_item_id": self.item.id}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 409)
+
     def test_confirm_rejects_non_completed_scan(self):
         self.scan.status = ReceiptScan.Status.PROCESSING
         self.scan.save()
@@ -411,6 +433,13 @@ class DeleteScanAPITest(TestCase):
         self.assertEqual(response.status_code, 204)
         self.assertEqual(ReceiptScan.objects.count(), 0)
         self.assertEqual(ReceiptItem.objects.count(), 0)
+
+    def test_delete_confirmed_scan_409(self):
+        scan = ReceiptScanFactory(user=self.user, status=ReceiptScan.Status.CONFIRMED)
+        response = self.client.delete(f"/api/v1/receipts/{scan.id}", **self.auth)
+        self.assertEqual(response.status_code, 409)
+        # Scan should still exist
+        self.assertTrue(ReceiptScan.objects.filter(id=scan.id).exists())
 
     def test_delete_other_users_scan(self):
         scan = ReceiptScanFactory()  # Different user
