@@ -1,6 +1,8 @@
 "use client";
 
+import { useSaveRecipe, useUnsaveRecipe } from "@/hooks/use-recipes";
 import type { RecipeSummary } from "@/types/api";
+import { Heart } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -26,6 +28,18 @@ function getGradient(title: string): string {
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const totalIngredients = recipe.used_ingredient_count + recipe.missed_ingredient_count;
   const recipeId = recipe.id ?? recipe.external_id;
+  const saveMutation = useSaveRecipe();
+  const unsaveMutation = useUnsaveRecipe();
+
+  function handleSaveToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (recipe.is_saved) {
+      unsaveMutation.mutate(recipeId);
+    } else {
+      saveMutation.mutate({ recipeId });
+    }
+  }
 
   return (
     <Link href={`/recipes/${recipeId}`} className="block">
@@ -51,6 +65,16 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               {recipe.used_ingredient_count}/{totalIngredients} match
             </div>
           )}
+          <button
+            type="button"
+            onClick={handleSaveToggle}
+            className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90"
+          >
+            <Heart
+              size={18}
+              className={recipe.is_saved ? "fill-red-500 text-red-500" : "text-gray-600"}
+            />
+          </button>
         </div>
 
         <div className="px-4 py-3.5">
