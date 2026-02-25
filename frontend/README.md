@@ -42,7 +42,7 @@ npm run dev
 | `/recipes` | Done | Recipe suggestions (For You), search with filter tabs (Quick Meals, Healthy, Vegetarian), infinite scroll on all tabs, 3-layer merge search |
 | `/recipes/[recipeId]` | Done | Recipe detail with hero image, nutrition grid, ingredients checklist, step-by-step instructions, save/unsave/cook/share actions |
 | `/recipes/saved` | Done | Saved recipes (compact list with search, unsave), cooking history section with ratings |
-| `/settings` | Placeholder | User settings |
+| `/settings` | Done | Profile (display name, email), dietary preferences (Spoonacular allowlist toggle chips), household size stepper, sign out |
 
 ## Architecture
 
@@ -59,7 +59,7 @@ npm run dev
 - `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, add, update, delete, bulk-delete, use)
 - `src/hooks/use-receipts.ts` — Receipt queries + mutations (scans, scan detail, scan receipt, confirm, delete)
 - `src/hooks/use-recipes.ts` — Recipe queries + mutations (suggestions, infinite search, detail, save/unsave, cooking log/history, tab prefetching, optimistic save/unsave)
-- `src/hooks/use-user.ts` — Current user profile
+- `src/hooks/use-user.ts` — Current user profile + update mutation
 
 ### Shared components
 - `src/components/bottom-nav.tsx` — 5-tab bottom navigation with raised scan FAB
