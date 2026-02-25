@@ -1,6 +1,7 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import DOMPurify from "dompurify";
 import { useRecipeDetail } from "@/hooks/use-recipes";
 import { useParams } from "next/navigation";
 import { IngredientsChecklist } from "./_components/ingredients-checklist";
@@ -72,9 +73,7 @@ export default function RecipeDetailPage() {
 
       <div className="px-5 pt-5">
         <h1 className="mb-1 text-2xl font-bold text-gray-900">{recipe.title}</h1>
-        {recipe.description && (
-          <p className="mb-4 text-sm leading-relaxed text-gray-500">{recipe.description}</p>
-        )}
+        {recipe.description && <RecipeDescription html={recipe.description} />}
 
         <div className="mb-5 flex gap-3">
           {totalIngredients > 0 && (
@@ -100,5 +99,19 @@ export default function RecipeDetailPage() {
         <RecipeActions recipeId={recipeId} isSaved={recipe.is_saved} />
       </div>
     </div>
+  );
+}
+
+function RecipeDescription({ html }: { html: string }) {
+  const clean = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["b", "strong", "i", "em", "a"],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+  });
+
+  return (
+    <p
+      className="mb-4 text-sm leading-relaxed text-gray-500 [&_a]:text-green-700 [&_a]:underline [&_b]:font-semibold [&_b]:text-gray-700 [&_strong]:font-semibold [&_strong]:text-gray-700"
+      dangerouslySetInnerHTML={{ __html: clean }}
+    />
   );
 }
