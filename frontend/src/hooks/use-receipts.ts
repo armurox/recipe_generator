@@ -50,6 +50,7 @@ export function useConfirmReceipt(scanId: string) {
       // refetchType "all" ensures inactive queries (e.g. dashboard summary)
       // refetch immediately, not just when their component next mounts
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
     },
   });

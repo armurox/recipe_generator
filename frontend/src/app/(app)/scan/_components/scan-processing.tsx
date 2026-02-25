@@ -23,7 +23,7 @@ export function ScanProcessing({ onCancel }: ScanProcessingProps) {
       <div className="flex flex-col items-center px-8 text-center">
         <Loader2 className="mb-4 h-12 w-12 animate-spin text-green-600" />
         <h2 className="mb-2 text-lg font-semibold text-gray-900">Analyzing receipt...</h2>
-        <p className="mb-6 text-sm text-gray-500">Claude Vision is extracting your items</p>
+        <p className="mb-6 text-sm text-gray-500">Extracting ingredients from your receipt</p>
         <div className="mb-6 w-64">
           <Progress value={progress} className="h-2" />
         </div>

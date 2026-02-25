@@ -116,6 +116,7 @@ export function useUpdatePantryItem() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
     },
   });
 }
@@ -126,6 +127,7 @@ export function useDeletePantryItem() {
     mutationFn: (itemId: string) => apiClient.delete(`/pantry/${itemId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
     },
   });
 }
@@ -136,6 +138,7 @@ export function useBulkDeletePantryItems() {
     mutationFn: (ids: string[]) => apiClient.post<BulkDeleteOutput>("/pantry/bulk-delete", { ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
     },
   });
 }

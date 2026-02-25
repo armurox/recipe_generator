@@ -51,6 +51,14 @@ class RecipeProvider(ABC):
         """Get full recipe details by external (Spoonacular) ID."""
 
     @abstractmethod
+    async def get_popular(
+        self,
+        count: int = 10,
+        dietary: list[str] | None = None,
+    ) -> list[RecipeSummary]:
+        """Get popular/trending recipes (no ingredient input required)."""
+
+    @abstractmethod
     async def search(
         self,
         query: str,

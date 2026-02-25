@@ -17,6 +17,7 @@ from apps.recipes.schemas import (
     SavedRecipeOut,
     SaveRecipeNotesIn,
     SearchResultsOut,
+    SuggestRecipesOut,
 )
 from apps.recipes.services.base import RecipeProviderError
 from apps.recipes.services.spoonacular import SpoonacularProvider
@@ -102,7 +103,7 @@ async def _annotate_is_saved(user, summaries: list[RecipeSummaryOut]) -> list[Re
 # ---------------------------------------------------------------------------
 
 
-@router.get("/suggest", response=list[RecipeSummaryOut])
+@router.get("/suggest", response=SuggestRecipesOut)
 async def suggest_recipes(request, count: int = 10):
     """Suggest recipes based on the user's available pantry ingredients.
 
@@ -110,11 +111,13 @@ async def suggest_recipes(request, count: int = 10):
     asks the recipe provider for matching recipes. Respects the user's
     dietary_prefs if set.
 
-    Decision: Returns empty list for empty pantry instead of an error,
-    since it's a valid state (user just hasn't added ingredients yet).
+    Decision: When the pantry is empty, returns popular recipes as a fallback
+    with using_pantry_ingredients=False so the frontend can adjust its messaging.
     """
     user = request.auth
     logger.info("[suggest_recipes] user=%s count=%d", user.id, count)
+
+    dietary = user.dietary_prefs if user.dietary_prefs else None
 
     # Get available pantry ingredient names
     ingredient_names = [
@@ -127,18 +130,21 @@ async def suggest_recipes(request, count: int = 10):
         .values_list("ingredient__name", flat=True)
     ]
 
-    if not ingredient_names:
-        logger.info("[suggest_recipes] user=%s has empty pantry", user.id)
-        return []
-
-    dietary = user.dietary_prefs if user.dietary_prefs else None
+    using_pantry = bool(ingredient_names)
 
     try:
-        summaries = await recipe_provider.find_by_ingredients(
-            ingredients=ingredient_names,
-            count=count,
-            dietary=dietary,
-        )
+        if ingredient_names:
+            summaries = await recipe_provider.find_by_ingredients(
+                ingredients=ingredient_names,
+                count=count,
+                dietary=dietary,
+            )
+        else:
+            logger.info("[suggest_recipes] user=%s has empty pantry, fetching popular recipes", user.id)
+            summaries = await recipe_provider.get_popular(
+                count=count,
+                dietary=dietary,
+            )
     except RecipeProviderError as exc:
         logger.exception("[suggest_recipes] provider error for user=%s", user.id)
         raise HttpError(502, f"Recipe service error: {exc}") from exc
@@ -167,7 +173,8 @@ async def suggest_recipes(request, count: int = 10):
             if r.external_id == recipe.external_id:
                 r.id = recipe.id
 
-    return await _annotate_is_saved(user, results)
+    results = await _annotate_is_saved(user, results)
+    return SuggestRecipesOut(using_pantry_ingredients=using_pantry, items=results)
 
 
 @router.get("/search", response=SearchResultsOut)

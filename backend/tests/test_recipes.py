@@ -164,10 +164,11 @@ class SuggestRecipesAPITest(TestCase):
         resp = self.client.get(f"{BASE_URL}/suggest", **self.auth)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0]["title"], "Pasta Primavera")
-        self.assertEqual(data[0]["used_ingredient_count"], 3)
-        self.assertFalse(data[0]["is_saved"])
+        self.assertTrue(data["using_pantry_ingredients"])
+        self.assertEqual(len(data["items"]), 2)
+        self.assertEqual(data["items"][0]["title"], "Pasta Primavera")
+        self.assertEqual(data["items"][0]["used_ingredient_count"], 3)
+        self.assertFalse(data["items"][0]["is_saved"])
 
         # Verify provider was called with ingredient names
         mock_provider.find_by_ingredients.assert_awaited_once()
@@ -176,11 +177,15 @@ class SuggestRecipesAPITest(TestCase):
         self.assertIn("tomato", ingredients_arg)
         self.assertIn("onion", ingredients_arg)
 
-    def test_suggest_empty_pantry(self, mock_provider):
+    def test_suggest_empty_pantry_returns_popular(self, mock_provider):
+        mock_provider.get_popular = AsyncMock(return_value=[MOCK_SUMMARY, MOCK_SUMMARY_2])
         resp = self.client.get(f"{BASE_URL}/suggest", **self.auth)
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.json(), [])
+        data = resp.json()
+        self.assertFalse(data["using_pantry_ingredients"])
+        self.assertEqual(len(data["items"]), 2)
         mock_provider.find_by_ingredients.assert_not_called()
+        mock_provider.get_popular.assert_awaited_once()
 
     def test_suggest_with_dietary_prefs(self, mock_provider):
         mock_provider.find_by_ingredients = AsyncMock(return_value=[MOCK_SUMMARY])
@@ -233,9 +238,10 @@ class SuggestRecipesAPITest(TestCase):
         resp = self.client.get(f"{BASE_URL}/suggest", **self.auth)
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
+        items = data["items"]
         # 12345 is saved, 67890 is not
-        saved_item = next(d for d in data if d["external_id"] == "12345")
-        unsaved_item = next(d for d in data if d["external_id"] == "67890")
+        saved_item = next(d for d in items if d["external_id"] == "12345")
+        unsaved_item = next(d for d in items if d["external_id"] == "67890")
         self.assertTrue(saved_item["is_saved"])
         self.assertFalse(unsaved_item["is_saved"])
 

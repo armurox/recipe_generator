@@ -37,6 +37,13 @@ class RecipeDetailOut(Schema):
     updated_at: datetime
 
 
+class SuggestRecipesOut(Schema):
+    using_pantry_ingredients: bool = Field(
+        description="True if suggestions are based on the user's pantry; False if showing popular fallback recipes"
+    )
+    items: list[RecipeSummaryOut]
+
+
 class SearchResultsOut(Schema):
     items: list[RecipeSummaryOut]
     total_results: int

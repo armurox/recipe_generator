@@ -103,6 +103,32 @@ class SpoonacularProvider(RecipeProvider):
         logger.info("[find_by_ingredients_complex] returned %d results", len(results))
         return results
 
+    async def get_popular(
+        self,
+        count: int = 10,
+        dietary: list[str] | None = None,
+    ) -> list[RecipeSummary]:
+        """Get popular recipes via /recipes/complexSearch sorted by popularity.
+
+        Decision: Uses complexSearch with sort=popularity and no query/ingredients,
+        providing a generic fallback when the user's pantry is empty.
+        """
+        logger.info("[get_popular] count=%d dietary=%s", count, dietary)
+        url = f"{self.base_url}/recipes/complexSearch"
+        params = {
+            "sort": "popularity",
+            "number": count,
+        }
+        if dietary:
+            params["diet"] = ",".join(dietary)
+
+        data = await self._request(url, params)
+        results = []
+        for item in data.get("results", []):
+            results.append(self._parse_complex_result(item))
+        logger.info("[get_popular] returned %d results", len(results))
+        return results
+
     async def get_recipe_detail(self, external_id: str) -> RecipeDetail:
         """Fetch full recipe details from /recipes/{id}/information."""
         logger.info("[get_recipe_detail] external_id=%s", external_id)
