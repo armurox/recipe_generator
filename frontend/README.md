@@ -41,7 +41,7 @@ npm run dev
 | `/scan/[scanId]` | Done | Review extracted items, edit name/qty/unit, confirm or discard. Read-only view for confirmed scans |
 | `/recipes` | Done | Recipe suggestions (For You), search with filter tabs (Quick Meals, Healthy, Vegetarian), infinite scroll on all tabs, 3-layer merge search |
 | `/recipes/[recipeId]` | Done | Recipe detail with hero image, nutrition grid, ingredients checklist, step-by-step instructions, save/unsave/cook/share actions |
-| `/recipes/saved` | Done | Saved recipes list |
+| `/recipes/saved` | Done | Saved recipes (compact list with search, unsave), cooking history section with ratings |
 | `/settings` | Placeholder | User settings |
 
 ## Architecture
@@ -58,12 +58,13 @@ npm run dev
 - `src/types/api.ts` — TypeScript types mirroring backend schemas
 - `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, add, update, delete, bulk-delete, use)
 - `src/hooks/use-receipts.ts` — Receipt queries + mutations (scans, scan detail, scan receipt, confirm, delete)
-- `src/hooks/use-recipes.ts` — Recipe queries + mutations (suggestions, infinite search, detail, save/unsave, cooking log, tab prefetching)
+- `src/hooks/use-recipes.ts` — Recipe queries + mutations (suggestions, infinite search, detail, save/unsave, cooking log/history, tab prefetching, optimistic save/unsave)
 - `src/hooks/use-user.ts` — Current user profile
 
 ### Shared components
 - `src/components/bottom-nav.tsx` — 5-tab bottom navigation with raised scan FAB
-- `src/components/recipe-card.tsx` — Recipe card with image, title, ingredient pills, "X/N in pantry" badge, save heart
+- `src/components/recipe-card.tsx` — Recipe card with image, title, ingredient pills, "X/N in pantry" badge, interactive save heart
+- `src/components/star-rating.tsx` — Reusable 1-5 star rating (interactive or read-only)
 - `src/components/expiry-badge.tsx` — Expiry status text ("Expired", "Expiring in N days")
 
 ### Route structure
@@ -81,3 +82,5 @@ npm run dev
 - **HTML sanitization:** Recipe descriptions from Spoonacular are sanitized via DOMPurify and rendered with styled inline HTML (bold, links)
 - **Pantry write operations:** AddItemDialog (header "+"), EditItemSheet (tap row → bottom sheet), UseItem (partial/full consumption). Category field uses `<datalist>` for autocomplete from existing categories. All dialogs/sheets constrained to `max-w-md` app container
 - **Category auto-creation:** Backend creates new `IngredientCategory` when `category_hint` doesn't match existing categories (7-day default shelf life). Supported on both create and update endpoints
+- **Optimistic save/unsave:** `useSaveRecipe`/`useUnsaveRecipe` use `onMutate`/`onError`/`onSettled` to toggle `is_saved` across all recipe caches (detail, suggest, search, saved list) with full snapshot rollback on error
+- **Interactive hearts:** All save/unsave heart buttons have hover (scale, color hint) and active (press scale) transitions for tactile feedback

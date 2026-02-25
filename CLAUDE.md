@@ -146,6 +146,7 @@ Hierarchical keys for targeted invalidation:
 ### Mutations
 - **Invalidate related queries** in `onSuccess` — e.g., pantry mutation invalidates `["pantry"]` (all pantry queries)
 - **Optimistic updates** for pantry use/delete — user sees immediate feedback, rolls back on error
+- **Optimistic save/unsave** — `useSaveRecipe`/`useUnsaveRecipe` snapshot all `["recipes"]` caches, toggle `is_saved` via `updateIsSavedInCache` helper across detail/suggest/search/saved caches, restore from snapshot on error
 - **Global `onError`** on `QueryClient` catches 401s and triggers sign-out
 
 ## State Management
@@ -178,6 +179,7 @@ Use **React Hook Form + Zod** for all forms (consistency over using different to
 - **Bottom sheets** — use shadcn `Sheet` with `side="bottom"` and `mx-auto max-w-md` on `SheetContent`. Cap height with `max-h-[70vh] overflow-y-auto`
 - **Dialog sizing for PWA** — prefer narrow, tall card proportions (e.g. `w-64`) with stacked full-width buttons. Side-by-side buttons look cramped on mobile
 - **Form state sync** — use key-based remount (`key={item.id}`) instead of `useEffect` + `setState` to sync form state with prop changes (React Compiler lint rule: `react-hooks/set-state-in-effect`)
+- **Popup dialogs** — prefer centered popup (`w-64`, `items-center justify-center`) over bottom sheets for compact forms (cook rating, add item, delete confirm). Bottom sheets can be clipped by the bottom nav in the PWA context
 
 ## API Client Trailing Slashes
 Django's `APPEND_SLASH` setting cannot redirect POST/PATCH/DELETE requests. All mutation URLs in the API client must include a trailing slash (e.g. `/pantry/`, not `/pantry`). GET requests work without trailing slashes because Django can redirect them.
