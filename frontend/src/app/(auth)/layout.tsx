@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   if (isLoading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-bg">
+      <div className="mx-auto flex min-h-dvh max-w-md items-center justify-center bg-bg">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-700 border-t-transparent" />
       </div>
     );
@@ -24,5 +24,5 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   if (session) return null;
 
-  return <>{children}</>;
+  return <div className="mx-auto min-h-dvh max-w-md bg-bg">{children}</div>;
 }
