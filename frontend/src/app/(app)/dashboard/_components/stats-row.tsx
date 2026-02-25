@@ -25,10 +25,7 @@ export function StatsRow() {
   return (
     <div className="mb-4 grid grid-cols-3 gap-2.5">
       {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="rounded-xl bg-white px-3 py-3.5 text-center shadow-sm"
-        >
+        <div key={stat.label} className="rounded-xl bg-white px-3 py-3.5 text-center shadow-sm">
           <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
           <div className="mt-1 text-[11px] font-medium text-gray-500">{stat.label}</div>
         </div>

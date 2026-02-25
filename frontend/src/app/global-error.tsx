@@ -24,9 +24,7 @@ export default function GlobalError({
       >
         <div>
           <div style={{ fontSize: "48px", marginBottom: "12px" }}>🚨</div>
-          <h1 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
-            Critical Error
-          </h1>
+          <h1 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>Critical Error</h1>
           <p style={{ fontSize: "14px", color: "#6B7280", marginBottom: "24px" }}>
             {error.message || "Something went very wrong."}
           </p>

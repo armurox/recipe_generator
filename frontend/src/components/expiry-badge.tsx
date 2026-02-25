@@ -58,9 +58,7 @@ export function ExpiryBadge({ expiryDate, showDate = false }: ExpiryBadgeProps) 
   return (
     <div className="text-right">
       <span className={cn("text-xs font-medium", colorClasses[color])}>{label}</span>
-      {showDate && dateStr && (
-        <div className="mt-0.5 text-[11px] text-gray-500">{dateStr}</div>
-      )}
+      {showDate && dateStr && <div className="mt-0.5 text-[11px] text-gray-500">{dateStr}</div>}
     </div>
   );
 }

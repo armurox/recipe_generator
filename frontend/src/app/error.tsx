@@ -16,10 +16,7 @@ export default function ErrorPage({
       <p className="mb-6 text-sm text-gray-500">
         {error.message || "An unexpected error occurred."}
       </p>
-      <Button
-        onClick={reset}
-        className="rounded-xl bg-green-700 px-6 hover:bg-green-700/90"
-      >
+      <Button onClick={reset} className="rounded-xl bg-green-700 px-6 hover:bg-green-700/90">
         Try again
       </Button>
     </div>

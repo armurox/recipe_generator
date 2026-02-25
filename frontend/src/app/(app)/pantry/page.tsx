@@ -74,10 +74,10 @@ export default function PantryPage() {
 
   const { data, isLoading, isPlaceholderData } = usePantryItems(queryFilters);
   const { data: summary } = usePantrySummary();
-  const {
-    data: serverSearchData,
-    isLoading: isSearching,
-  } = usePantrySearch(debouncedSearch, queryFilters);
+  const { data: serverSearchData, isLoading: isSearching } = usePantrySearch(
+    debouncedSearch,
+    queryFilters,
+  );
 
   const isActiveSearch = search.trim().length > 0;
 
@@ -103,7 +103,8 @@ export default function PantryPage() {
     isActiveSearch && clientFiltered.length === 0 && isSearching && debouncedSearch.length > 0;
   const showSkeleton = isLoading || showSearchSkeleton;
 
-  const initial = user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
+  const initial =
+    user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
 
   return (
     <div>
@@ -113,7 +114,8 @@ export default function PantryPage() {
           {summary ? (
             <>
               <p className="mt-0.5 text-sm text-gray-500">
-                {summary.total_available} {summary.total_available === 1 ? "item" : "items"} available for use
+                {summary.total_available} {summary.total_available === 1 ? "item" : "items"}{" "}
+                available for use
               </p>
               {summary.total_expiring_soon > 0 && (
                 <p className="text-sm text-orange-500">
@@ -168,7 +170,13 @@ export default function PantryPage() {
             )}
           </div>
         ) : (
-          <div className={isPlaceholderData || isSearching ? "opacity-50 transition-opacity" : "transition-opacity"}>
+          <div
+            className={
+              isPlaceholderData || isSearching
+                ? "opacity-50 transition-opacity"
+                : "transition-opacity"
+            }
+          >
             {groups.map((group) => (
               <CategoryGroup
                 key={group.categoryName}

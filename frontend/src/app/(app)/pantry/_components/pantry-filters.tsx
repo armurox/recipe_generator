@@ -25,9 +25,7 @@ export function PantryFilters({ active, onChange }: PantryFiltersProps) {
           onClick={() => onChange(filter.key)}
           className={cn(
             "whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-medium",
-            active === filter.key
-              ? "bg-green-700 text-white"
-              : "bg-gray-100 text-gray-700",
+            active === filter.key ? "bg-green-700 text-white" : "bg-gray-100 text-gray-700",
           )}
         >
           {filter.label}

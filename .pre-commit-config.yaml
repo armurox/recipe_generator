@@ -1,4 +1,5 @@
 repos:
+  # Backend — ruff lint + format
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.10
     hooks:
@@ -6,6 +7,7 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  # Backend — ty type check
   - repo: local
     hooks:
       - id: ty
@@ -14,3 +16,19 @@ repos:
         language: system
         pass_filenames: false
         files: ^backend/
+
+      # Frontend — ESLint
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && npx eslint --max-warnings 0'
+        language: system
+        pass_filenames: false
+        files: ^frontend/src/.*\.(ts|tsx)$
+
+      # Frontend — Prettier
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd frontend && npx prettier --check "src/**/*.{ts,tsx}"'
+        language: system
+        pass_filenames: false
+        files: ^frontend/src/.*\.(ts|tsx)$

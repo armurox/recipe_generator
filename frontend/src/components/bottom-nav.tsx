@@ -31,11 +31,7 @@ export function BottomNav() {
 
         if (item.isScan) {
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center gap-1"
-            >
+            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1">
               <div className="-mt-5 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-green-700 shadow-[0_4px_12px_rgba(45,106,79,0.3)]">
                 <Icon className="h-6 w-6 text-white" />
               </div>

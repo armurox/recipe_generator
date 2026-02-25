@@ -7,8 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint & Type Check
+  # ── Backend ──────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend Lint & Type Check
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,8 +36,8 @@ jobs:
       - name: Type check
         run: uv run ty check
 
-  test:
-    name: Tests
+  backend-test:
+    name: Backend Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,3 +57,30 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests/ -v
+
+  # ── Frontend ─────────────────────────────────────────────────────────
+  frontend-lint:
+    name: Frontend Lint & Format Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npm run lint -- --max-warnings 0
+
+      - name: Prettier
+        run: npx prettier --check "src/**/*.{ts,tsx}"
+
+      - name: TypeScript build check
+        run: npm run build

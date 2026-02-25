@@ -17,7 +17,8 @@ function getGreeting(): string {
 export default function DashboardPage() {
   const { data: user } = useCurrentUser();
 
-  const initial = user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
+  const initial =
+    user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
 
   return (
     <div>

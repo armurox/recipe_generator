@@ -126,9 +126,7 @@ export default function RegisterPage() {
               className="h-12 rounded-xl border-[1.5px] border-gray-300 text-base focus-visible:ring-green-700"
               {...register("email")}
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
           </div>
 
           <div>
