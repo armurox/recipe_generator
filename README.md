@@ -94,8 +94,8 @@ For Google OAuth to work, configure the redirect URL in your Supabase dashboard:
 ### Recipes
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/recipes/suggest` | Suggest from pantry, or popular if empty. Returns `{ using_pantry_ingredients, items }` |
-| GET | `/api/v1/recipes/search` | Search by keyword with diet filters |
+| GET | `/api/v1/recipes/suggest` | Suggest from pantry, or popular if empty. Paginated (`page`, `page_size`). Returns `{ using_pantry_ingredients, items, total_results }` |
+| GET | `/api/v1/recipes/search` | Search by keyword (`q`), diet filter (`diet`), and/or max ready time (`max_ready_time`). Paginated |
 | GET | `/api/v1/recipes/saved` | List saved recipes |
 | GET | `/api/v1/recipes/history` | Cooking history |
 | GET | `/api/v1/recipes/{id}` | Recipe detail (cache-on-first-access) |
@@ -106,7 +106,7 @@ For Google OAuth to work, configure the redirect URL in your Supabase dashboard:
 ## Tests
 
 ```bash
-# Backend (157 tests)
+# Backend (159 tests)
 cd backend && uv run pytest tests/ -v
 
 # Frontend (build check)

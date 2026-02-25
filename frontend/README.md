@@ -39,7 +39,9 @@ npm run dev
 | `/pantry` | Done | Pantry inventory grouped by category, search, filters, tap-to-edit quantity, single + bulk delete |
 | `/scan` | Done | Receipt upload (camera/gallery), image compression, recent scans with status badges |
 | `/scan/[scanId]` | Done | Review extracted items, edit name/qty/unit, confirm or discard. Read-only view for confirmed scans |
-| `/recipes` | Placeholder | Recipe search/suggestions |
+| `/recipes` | Done | Recipe suggestions (For You), search with filter tabs (Quick Meals, Healthy, Vegetarian), infinite scroll on all tabs, 3-layer merge search |
+| `/recipes/[recipeId]` | Done | Recipe detail with hero image, nutrition grid, ingredients checklist, step-by-step instructions, save/unsave/cook/share actions |
+| `/recipes/saved` | Done | Saved recipes list |
 | `/settings` | Placeholder | User settings |
 
 ## Architecture
@@ -56,12 +58,12 @@ npm run dev
 - `src/types/api.ts` — TypeScript types mirroring backend schemas
 - `src/hooks/use-pantry.ts` — Pantry queries + mutations (summary, items, expiring, update, delete, bulk-delete)
 - `src/hooks/use-receipts.ts` — Receipt queries + mutations (scans, scan detail, scan receipt, confirm, delete)
-- `src/hooks/use-recipes.ts` — Recipe suggestions (returns `SuggestRecipesResponse` with `using_pantry_ingredients` flag)
+- `src/hooks/use-recipes.ts` — Recipe queries + mutations (suggestions, infinite search, detail, save/unsave, cooking log, tab prefetching)
 - `src/hooks/use-user.ts` — Current user profile
 
 ### Shared components
 - `src/components/bottom-nav.tsx` — 5-tab bottom navigation with raised scan FAB
-- `src/components/recipe-card.tsx` — Recipe card with image, title, ingredient match badges
+- `src/components/recipe-card.tsx` — Recipe card with image, title, ingredient pills, "X/N in pantry" badge, save heart
 - `src/components/expiry-badge.tsx` — Expiry status text ("Expired", "Expiring in N days")
 
 ### Route structure
@@ -72,5 +74,8 @@ npm run dev
 
 - **Optimistic updates:** `useUpdatePantryItem` uses `onMutate`/`onError`/`onSettled` to update UI immediately and roll back on failure
 - **Cache invalidation:** Pantry mutations invalidate `["recipes", "suggest"]` with `refetchType: "all"` so dashboard stays fresh
-- **Infinite scroll:** Recipe suggestions use `IntersectionObserver` with 200px rootMargin to auto-load batches of 3
-- **Popular fallback:** When pantry is empty, suggestions show popular Spoonacular recipes with adjusted messaging
+- **Infinite scroll:** All recipe tabs use callback-ref `IntersectionObserver` with 1200px rootMargin for seamless prefetching (~5 items ahead)
+- **Popular fallback:** When pantry is empty, suggestions show popular Spoonacular recipes with ingredient data (bulk-fetched) and adjusted messaging
+- **3-layer merge search:** Client-side filter from cached suggestions → merge with server search results → smart loading states for instant feedback
+- **Tab prefetching:** On recipes page load, first page of Quick Meals, Healthy, and Vegetarian tabs are prefetched for instant switching
+- **HTML sanitization:** Recipe descriptions from Spoonacular are sanitized via DOMPurify and rendered with styled inline HTML (bold, links)
