@@ -11,7 +11,7 @@ Django + Django Ninja REST API for the PantryChef recipe generator app.
 | Package manager | uv | latest |
 | Database | Supabase Postgres (via psycopg) | — |
 | Auth | Supabase JWT (PyJWT, HS256) | — |
-| ASGI server | uvicorn | 0.34 |
+| ASGI server | gunicorn + uvicorn workers | 0.34 |
 | HTTP client | httpx | 0.28 |
 | OCR | Anthropic Claude Vision | — |
 | Linting | ruff | 0.9 |
