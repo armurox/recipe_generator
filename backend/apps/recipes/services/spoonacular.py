@@ -63,7 +63,7 @@ class SpoonacularProvider(RecipeProvider):
             "ingredients": ",".join(ingredients),
             "number": count,
             "ranking": 2,  # Minimize missing ingredients
-            "ignorePantry": True,
+            "ignorePantry": "true",
         }
 
         data = await self._request(url, params)
@@ -99,7 +99,7 @@ class SpoonacularProvider(RecipeProvider):
             "number": count,
             "offset": offset,
             "sort": "min-missing-ingredients",
-            "fillIngredients": True,
+            "fillIngredients": "true",
         }
         if dietary:
             params["diet"] = ",".join(dietary)
@@ -138,6 +138,17 @@ class SpoonacularProvider(RecipeProvider):
         results = []
         for item in data.get("results", []):
             results.append(self._parse_complex_result(item))
+
+        # complexSearch doesn't include extendedIngredients, so batch-fetch
+        # recipe details to get ingredient lists for UI display.
+        if results:
+            ids = [r.external_id for r in results]
+            ingredients_by_id = await self._bulk_fetch_ingredients(ids)
+            for summary in results:
+                if not summary.missed_ingredients and summary.external_id in ingredients_by_id:
+                    summary.missed_ingredients = ingredients_by_id[summary.external_id]
+                    summary.missed_ingredient_count = len(summary.missed_ingredients)
+
         logger.info("[get_popular] returned %d of %d total results", len(results), total)
         return results, total
 
@@ -145,7 +156,7 @@ class SpoonacularProvider(RecipeProvider):
         """Fetch full recipe details from /recipes/{id}/information."""
         logger.info("[get_recipe_detail] external_id=%s", external_id)
         url = f"{self.base_url}/recipes/{external_id}/information"
-        params = {"includeNutrition": True}
+        params = {"includeNutrition": "true"}
 
         data = await self._request(url, params)
         return self._parse_detail(data)
@@ -171,7 +182,7 @@ class SpoonacularProvider(RecipeProvider):
         params = {
             "number": count,
             "offset": offset,
-            "fillIngredients": True,
+            "fillIngredients": "true",
         }
         if query:
             params["query"] = query
@@ -187,6 +198,29 @@ class SpoonacularProvider(RecipeProvider):
             results.append(self._parse_complex_result(item))
         logger.info("[search] returned %d of %d total results", len(results), total)
         return results, total
+
+    async def _bulk_fetch_ingredients(self, ids: list[str]) -> dict[str, list[str]]:
+        """Fetch ingredient names for multiple recipes via /recipes/informationBulk.
+
+        Returns a dict mapping external_id → list of ingredient names.
+        Single API call regardless of how many IDs (up to 100).
+        """
+        url = f"{self.base_url}/recipes/informationBulk"
+        params = {"ids": ",".join(ids)}
+
+        try:
+            data = await self._request(url, params)
+        except RecipeProviderError:
+            logger.warning("[_bulk_fetch_ingredients] failed, returning empty")
+            return {}
+
+        result: dict[str, list[str]] = {}
+        for recipe in data:
+            ext_id = str(recipe.get("id", ""))
+            ingredients = [ing.get("name", "") for ing in recipe.get("extendedIngredients", [])]
+            result[ext_id] = ingredients
+        logger.info("[_bulk_fetch_ingredients] fetched ingredients for %d recipes", len(result))
+        return result
 
     async def _request(self, url: str, params: dict) -> dict | list:
         """Make an authenticated GET request to the Spoonacular API."""

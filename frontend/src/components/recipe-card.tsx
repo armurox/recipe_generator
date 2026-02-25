@@ -62,7 +62,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           )}
           {totalIngredients > 0 && (
             <div className="absolute right-3 top-3 rounded-full bg-green-700 px-2.5 py-1 text-xs font-semibold text-white">
-              {recipe.used_ingredient_count}/{totalIngredients} match
+              {recipe.used_ingredient_count}/{totalIngredients} in pantry
             </div>
           )}
           <button

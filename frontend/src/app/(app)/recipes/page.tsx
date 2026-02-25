@@ -3,7 +3,11 @@
 import { RecipeCard } from "@/components/recipe-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounce";
-import { useInfiniteRecipeSearch, useInfiniteRecipeSuggestions } from "@/hooks/use-recipes";
+import {
+  useInfiniteRecipeSearch,
+  useInfiniteRecipeSuggestions,
+  usePrefetchRecipeTabs,
+} from "@/hooks/use-recipes";
 import type { RecipeSummary } from "@/types/api";
 import { BookOpen, Heart, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -97,6 +101,9 @@ export default function RecipesPage() {
   if (!debouncedSearch && activeFilter === "healthy") searchQuery = "healthy";
   if (activeFilter === "vegetarian") dietFilter = "vegetarian";
 
+  // Prefetch other tabs on mount so switching feels instant
+  usePrefetchRecipeTabs(PAGE_SIZE);
+
   // Both queries always run — suggestions for client-side fallback, search for BE results
   const suggestions = useInfiniteRecipeSuggestions(PAGE_SIZE);
   const search = useInfiniteRecipeSearch(searchQuery, dietFilter, PAGE_SIZE, maxReadyTime);
@@ -170,7 +177,7 @@ export default function RecipesPage() {
               <p className="text-[13px] text-gray-500">
                 {usingPantry
                   ? "Using your pantry ingredients"
-                  : "Add ingredients to get personalized suggestions"}
+                  : "Add ingredients to your pantry to get personalized suggestions"}
               </p>
             </div>
             <InfiniteRecipeList

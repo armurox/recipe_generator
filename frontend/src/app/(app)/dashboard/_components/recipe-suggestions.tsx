@@ -56,7 +56,7 @@ export function RecipeSuggestions() {
       <p className="mb-3 text-[13px] text-gray-500">
         {data.using_pantry_ingredients
           ? "Based on what\u2019s in your pantry"
-          : "Add ingredients to get personalized suggestions"}
+          : "Add ingredients to your pantry to get personalized suggestions"}
       </p>
       {shown.map((recipe) => (
         <RecipeCard key={recipe.external_id} recipe={recipe} />

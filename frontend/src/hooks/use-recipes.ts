@@ -9,6 +9,7 @@ import type {
   SuggestRecipesResponse,
 } from "@/types/api";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export function useRecipeSuggestions(pageSize: number = 10) {
   return useQuery({
@@ -67,6 +68,79 @@ export function useInfiniteRecipeSearch(
     staleTime: 5 * 60 * 1000,
     enabled: query.trim().length > 0 || !!diet || !!maxReadyTime,
   });
+}
+
+/**
+ * Prefetch first page of each recipe tab so switching feels instant.
+ * Called once on recipes page mount.
+ */
+export function usePrefetchRecipeTabs(pageSize: number = 10) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const searchFn = (params: URLSearchParams) =>
+      apiClient.get<SearchResults>(`/recipes/search?${params}`);
+
+    // Quick Meals — maxReadyTime=30
+    queryClient.prefetchInfiniteQuery({
+      queryKey: [
+        "recipes",
+        "search",
+        "infinite",
+        { q: "", diet: undefined, pageSize, maxReadyTime: 30 },
+      ],
+      queryFn: () => {
+        const params = new URLSearchParams({
+          page: "1",
+          page_size: String(pageSize),
+          max_ready_time: "30",
+        });
+        return searchFn(params);
+      },
+      initialPageParam: 1,
+      staleTime: 5 * 60 * 1000,
+    });
+
+    // Healthy
+    queryClient.prefetchInfiniteQuery({
+      queryKey: [
+        "recipes",
+        "search",
+        "infinite",
+        { q: "healthy", diet: undefined, pageSize, maxReadyTime: undefined },
+      ],
+      queryFn: () => {
+        const params = new URLSearchParams({
+          page: "1",
+          page_size: String(pageSize),
+          q: "healthy",
+        });
+        return searchFn(params);
+      },
+      initialPageParam: 1,
+      staleTime: 5 * 60 * 1000,
+    });
+
+    // Vegetarian
+    queryClient.prefetchInfiniteQuery({
+      queryKey: [
+        "recipes",
+        "search",
+        "infinite",
+        { q: "", diet: "vegetarian", pageSize, maxReadyTime: undefined },
+      ],
+      queryFn: () => {
+        const params = new URLSearchParams({
+          page: "1",
+          page_size: String(pageSize),
+          diet: "vegetarian",
+        });
+        return searchFn(params);
+      },
+      initialPageParam: 1,
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient, pageSize]);
 }
 
 export function useRecipeDetail(recipeId: string | null) {
