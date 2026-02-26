@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  poweredByHeader: false,
   // Acknowledge webpack config from @serwist/next so Turbopack dev server doesn't error
   turbopack: {},
   images: {
@@ -13,7 +14,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "jyubxcugxmtdsemfjucq.supabase.co",
+        hostname: "*.supabase.co",
       },
     ],
   },

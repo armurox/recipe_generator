@@ -1,7 +1,8 @@
 import { ApiError } from "@/lib/api-error";
 import { getAccessToken } from "@/lib/auth-token";
+import { env } from "@/lib/env";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const BASE_URL = env.NEXT_PUBLIC_API_URL;
 
 function getAuthHeaders(): Record<string, string> {
   const token = getAccessToken();
