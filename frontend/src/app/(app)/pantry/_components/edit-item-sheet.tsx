@@ -7,6 +7,7 @@ import {
   useUpdatePantryItem,
   useUsePantryItem,
 } from "@/hooks/use-pantry";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import type { PantryItem } from "@/types/api";
 import { Minus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -43,6 +44,7 @@ function EditItemForm({ item, onClose }: { item: PantryItem; onClose: () => void
   const updateItem = useUpdatePantryItem();
   const deleteItem = useDeletePantryItem();
   const useItem = useUsePantryItem();
+  const isOnline = useOnlineStatus();
   const { data: summary } = usePantrySummary();
 
   const categoryNames =
@@ -116,7 +118,7 @@ function EditItemForm({ item, onClose }: { item: PantryItem; onClose: () => void
     }
   }
 
-  const isPending = updateItem.isPending || deleteItem.isPending || useItem.isPending;
+  const isPending = updateItem.isPending || deleteItem.isPending || useItem.isPending || !isOnline;
   const isAvailable = item.status === "available";
 
   return (

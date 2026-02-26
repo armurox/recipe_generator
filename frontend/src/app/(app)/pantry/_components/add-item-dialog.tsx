@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAddPantryItem, usePantrySummary } from "@/hooks/use-pantry";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const [expiryDate, setExpiryDate] = useState("");
   const [category, setCategory] = useState("");
   const addItem = useAddPantryItem();
+  const isOnline = useOnlineStatus();
   const { data: summary } = usePantrySummary();
 
   const categoryNames =
@@ -136,7 +138,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
 
           <button
             type="submit"
-            disabled={!name.trim() || addItem.isPending}
+            disabled={!name.trim() || addItem.isPending || !isOnline}
             className="w-full rounded-lg bg-green-700 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             {addItem.isPending ? "Adding..." : "Add Item"}

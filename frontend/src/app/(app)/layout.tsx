@@ -1,6 +1,7 @@
 "use client";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mx-auto min-h-dvh max-w-md bg-bg pb-24">
+      <OfflineBanner />
       {children}
       <BottomNav />
     </div>

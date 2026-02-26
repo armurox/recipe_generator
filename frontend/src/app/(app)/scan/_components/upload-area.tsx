@@ -1,5 +1,6 @@
 "use client";
 
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Camera, Image as ImageIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -12,6 +13,7 @@ export function UploadArea({ onFileSelected, isUploading }: UploadAreaProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const isOnline = useOnlineStatus();
 
   function handleFile(file: File | undefined) {
     if (!file) return;
@@ -44,7 +46,7 @@ export function UploadArea({ onFileSelected, isUploading }: UploadAreaProps) {
       <div className="mb-6 flex gap-3">
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || !isOnline}
           onClick={() => cameraRef.current?.click()}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-[15px] font-semibold text-white disabled:opacity-50"
         >
@@ -53,7 +55,7 @@ export function UploadArea({ onFileSelected, isUploading }: UploadAreaProps) {
         </button>
         <button
           type="button"
-          disabled={isUploading}
+          disabled={isUploading || !isOnline}
           onClick={() => galleryRef.current?.click()}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl border-[1.5px] border-gray-300 bg-white px-4 py-3 text-[15px] font-semibold text-gray-700 disabled:opacity-50"
         >

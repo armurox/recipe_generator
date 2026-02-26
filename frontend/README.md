@@ -11,6 +11,8 @@ Next.js 16 PWA with Tailwind CSS + shadcn/ui. Mobile-first recipe generator app.
 - **Forms:** React Hook Form + Zod
 - **Icons:** Lucide React
 - **Toasts:** Sonner
+- **PWA:** @serwist/next (service worker, offline support)
+- **Testing:** Vitest + Testing Library (unit/component), Playwright (E2E)
 
 ## Setup
 
@@ -84,3 +86,36 @@ npm run dev
 - **Category auto-creation:** Backend creates new `IngredientCategory` when `category_hint` doesn't match existing categories (7-day default shelf life). Supported on both create and update endpoints
 - **Optimistic save/unsave:** `useSaveRecipe`/`useUnsaveRecipe` use `onMutate`/`onError`/`onSettled` to toggle `is_saved` across all recipe caches (detail, suggest, search, saved list) with full snapshot rollback on error
 - **Interactive hearts:** All save/unsave heart buttons have hover (scale, color hint) and active (press scale) transitions for tactile feedback
+
+## Testing
+
+### Unit & Component Tests (Vitest)
+
+```bash
+npm test            # Run all tests once
+npm run test:watch  # Watch mode
+```
+
+- **52 tests** across 13 test files
+- Uses happy-dom environment, MSW v2 for API mocking
+- Tests cover: API client, auth token, query client, pantry/recipe/user hooks, recipe card, add item dialog, pantry item row, review item row, online status hook, offline banner
+
+### E2E Tests (Playwright)
+
+```bash
+npm run test:e2e    # Run E2E tests (starts dev server automatically)
+```
+
+- **3 E2E test suites** running on Chromium with mobile viewport (390x844)
+- Tests cover: scan review & confirm flow, recipe save flow, pantry CRUD
+- Uses `page.route()` API mocking (no MSW browser worker needed)
+- Supabase auth mocked via document.cookie injection
+
+## PWA
+
+The app is a Progressive Web App with offline support:
+
+- **Service worker** via `@serwist/next` — precaches static assets, runtime caching for API (network-first) and images (stale-while-revalidate)
+- **Manifest** via `src/app/manifest.ts` — installable with app icons
+- **Offline indicator** — fixed banner appears when offline, mutation buttons disabled
+- **Build note:** Production build uses `--webpack` flag (required by @serwist/next v9); dev server uses Turbopack
