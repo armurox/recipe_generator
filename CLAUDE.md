@@ -212,6 +212,46 @@ Use **`@serwist/next`** (not `next-pwa`, which is unmaintained and incompatible 
 - Call `resolve-library-id` first to get the Context7-compatible library ID, then `query-docs` with a specific question
 - Prefer Context7 over web search or training knowledge for library usage — it returns up-to-date docs and real code examples
 
+## Deployment
+
+### Branching Strategy
+- **`v1`** — active development branch (PR #1 targets `staging`)
+- **`staging`** — merge here to trigger beta deploys (Railway + Vercel preview)
+- **`main`** — merge here to trigger production deploys (Railway + Vercel production)
+
+### Vercel (Frontend)
+- **Project:** `armuroxs-projects/frontend` (prj_YlPOY5L28D2TD9WHsNL4A2YQJA7w)
+- **Root directory:** `frontend/`
+- **Production branch:** `main`, **Preview branch:** `staging`
+- **Ignored branches:** all others (ignore command skips non-main/staging builds)
+- **MCP tools:** use `mcp__vercel__list_deployments`, `mcp__vercel__get_deployment`, `mcp__vercel__get_deployment_build_logs`, `mcp__vercel__get_runtime_logs` to monitor
+- **Env vars:** 3 per environment (SUPABASE_URL, SUPABASE_ANON_KEY, API_URL) — production and preview scoped separately
+
+### Railway (Backend)
+- **Project:** `courteous-wonder`
+- **Service:** `recipe_generator` (root directory: `backend/`)
+- **Environments:** `beta` (branch: `staging`), `production` (branch: `main`, not yet configured)
+- **Domain:** `recipegenerator-beta.up.railway.app`
+- **CLI commands:**
+  - `railway status` — current project/environment/service info
+  - `railway logs` — live deploy logs
+  - `railway logs --deployment <id>` — logs for a specific deployment
+  - `railway deployment list` — recent deployments with status
+  - `railway variables` — list environment variables (redacted)
+  - `railway variables set KEY=VALUE` — set/update an env var
+- **Build:** Dockerfile-based (`railway.toml` → `builder = "DOCKERFILE"`)
+- **Release command:** auto-runs `python manage.py migrate --no-input` using direct DB connection on every deploy
+- **Health check:** `/api/v1/health`
+
+### Supabase Projects
+- **Production:** `jyubxcugxmtdsemfjucq` (ap-southeast-1)
+- **Beta:** `lxgkzjeheppcpnbdruws` (ap-southeast-1)
+- **MCP tools:** use `mcp__supabase__execute_sql`, `mcp__supabase__get_logs`, `mcp__supabase__get_advisors` to monitor
+- **RLS:** deny-all enabled on all 18 public tables (Django bypasses as superuser)
+
+### Deployment Checklist
+Full guide at `docs/deployment-checklist.md` covering Supabase, SMTP, Railway, Vercel, Google OAuth setup.
+
 ## Future Considerations
 - Evaluate cacheops / Redis for caching when query performance becomes a concern
 - Set up centralized logging pipeline (ELK / CloudWatch) on deployment — backend container logs piped to aggregator
