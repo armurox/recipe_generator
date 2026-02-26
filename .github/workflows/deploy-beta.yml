@@ -1,0 +1,52 @@
+name: Deploy Beta
+
+on:
+  push:
+    branches: [staging]
+
+# Deploys backend to Railway (beta) and frontend to Vercel (preview/beta)
+# when code is pushed to the staging branch.
+#
+# Prerequisites (configured once Railway/Vercel projects exist):
+#   Secrets: RAILWAY_TOKEN, VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+#   Variables: RAILWAY_SERVICE_ID (beta service)
+
+jobs:
+  # ── Backend → Railway (beta) ──────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to Railway (Beta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Railway project is set up
+      # - name: Install Railway CLI
+      #   run: npm install -g @railway/cli
+
+      # - name: Deploy to Railway
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      #   run: railway up --service ${{ vars.RAILWAY_SERVICE_ID }}
+
+      - run: echo "Backend beta deployment placeholder — configure Railway secrets to enable"
+
+  # ── Frontend → Vercel (preview) ───────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to Vercel (Beta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Vercel project is set up
+      # - name: Install Vercel CLI
+      #   run: npm install -g vercel
+
+      # - name: Deploy to Vercel (preview)
+      #   env:
+      #     VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      #   working-directory: frontend
+      #   run: vercel deploy --token $VERCEL_TOKEN
+
+      - run: echo "Frontend beta deployment placeholder — configure Vercel secrets to enable"

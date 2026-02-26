@@ -1,0 +1,52 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+# Deploys backend to Railway (production) and frontend to Vercel (production)
+# when code is pushed to the main branch (typically via staging → main merge).
+#
+# Prerequisites (configured once Railway/Vercel projects exist):
+#   Secrets: RAILWAY_TOKEN, VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+#   Variables: RAILWAY_SERVICE_ID (production service)
+
+jobs:
+  # ── Backend → Railway (production) ────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to Railway (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Railway project is set up
+      # - name: Install Railway CLI
+      #   run: npm install -g @railway/cli
+
+      # - name: Deploy to Railway
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      #   run: railway up --service ${{ vars.RAILWAY_SERVICE_ID }}
+
+      - run: echo "Backend production deployment placeholder — configure Railway secrets to enable"
+
+  # ── Frontend → Vercel (production) ────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to Vercel (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Vercel project is set up
+      # - name: Install Vercel CLI
+      #   run: npm install -g vercel
+
+      # - name: Deploy to Vercel (production)
+      #   env:
+      #     VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      #   working-directory: frontend
+      #   run: vercel deploy --prod --token $VERCEL_TOKEN
+
+      - run: echo "Frontend production deployment placeholder — configure Vercel secrets to enable"
