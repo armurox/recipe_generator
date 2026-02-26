@@ -141,3 +141,10 @@ ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 # Spoonacular (Recipe API)
 SPOONACULAR_API_KEY = os.environ.get("SPOONACULAR_API_KEY", "")
 SPOONACULAR_BASE_URL = os.environ.get("SPOONACULAR_BASE_URL", "https://api.spoonacular.com")
+
+# Django Ninja docs — enabled by default, disabled in production
+NINJA_DOCS_URL = "/docs"
+
+# Rate limiting (receipt scans)
+SCAN_RATE_LIMIT_MAX = int(os.environ.get("SCAN_RATE_LIMIT_MAX", "10"))
+SCAN_RATE_LIMIT_PERIOD = int(os.environ.get("SCAN_RATE_LIMIT_PERIOD", "3600"))  # seconds

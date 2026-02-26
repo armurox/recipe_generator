@@ -49,6 +49,79 @@ class GetMeTest(TestCase):
         self.assertEqual(response.json()["id"], new_user_id)
         self.assertTrue(User.objects.filter(id=new_user_id).exists())
 
+    def test_patch_dietary_prefs_valid(self):
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"dietary_prefs": ["vegetarian", "gluten free"]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["dietary_prefs"], ["vegetarian", "gluten free"])
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.dietary_prefs, ["vegetarian", "gluten free"])
+
+    def test_patch_dietary_prefs_all_valid_values(self):
+        all_valid = [
+            "vegetarian",
+            "vegan",
+            "gluten free",
+            "ketogenic",
+            "paleo",
+            "whole30",
+            "primal",
+            "lacto-vegetarian",
+            "ovo-vegetarian",
+            "pescetarian",
+        ]
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"dietary_prefs": all_valid}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_patch_dietary_prefs_invalid_value(self):
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"dietary_prefs": ["vegetarian", "raw food"]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 422)
+
+    def test_patch_dietary_prefs_empty_list(self):
+        # Setting to empty list should work (clearing all preferences)
+        self.user.dietary_prefs = ["vegetarian"]
+        self.user.save()
+
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"dietary_prefs": []}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["dietary_prefs"], [])
+
+    def test_patch_dietary_prefs_null_skips_update(self):
+        self.user.dietary_prefs = ["vegan"]
+        self.user.save()
+
+        # Sending null (not included) should not change dietary_prefs
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"display_name": "New Name"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.dietary_prefs, ["vegan"])
+
     def test_unauthenticated(self):
         response = self.client.get("/api/v1/me")
         self.assertEqual(response.status_code, 401)

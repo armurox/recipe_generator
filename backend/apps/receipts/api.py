@@ -2,11 +2,13 @@ import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import Count
 from ninja import Router
 from ninja.errors import HttpError
 from ninja.pagination import PageNumberPagination, paginate
 
+from apps.core.ratelimit import check_rate_limit
 from apps.core.schemas import ErrorOut
 from apps.ingredients.models import Ingredient, IngredientCategory
 from apps.pantry.models import PantryItem
@@ -21,6 +23,7 @@ from apps.receipts.schemas import (
 )
 from apps.receipts.services.base import OCRExtractionError
 from apps.receipts.services.claude_ocr import ClaudeOCRProvider
+from apps.receipts.validators import validate_image_url
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,7 @@ router = Router(tags=["receipts"])
 ocr_provider = ClaudeOCRProvider()
 
 
-@router.post("/scan", response={200: ReceiptScanDetailOut, 400: ErrorOut, 502: ErrorOut})
+@router.post("/scan", response={200: ReceiptScanDetailOut, 400: ErrorOut, 429: ErrorOut, 502: ErrorOut})
 async def scan_receipt(request, payload: ScanReceiptIn):
     """Upload a receipt image URL for OCR extraction.
 
@@ -38,10 +41,25 @@ async def scan_receipt(request, payload: ScanReceiptIn):
     creates ReceiptItem records for each extracted line, and returns the scan
     with all items for user review before confirming to pantry.
 
+    Rate limited to SCAN_RATE_LIMIT_MAX scans per SCAN_RATE_LIMIT_PERIOD
+    (default: 10/hour) per user to control Claude Vision API costs.
+
+    Returns 400 if the image URL is not from Supabase Storage (SSRF protection).
+    Returns 429 if the rate limit is exceeded.
     Returns 502 if the OCR provider fails (API error, image download failure).
     """
     user = request.auth
     logger.info("[scan_receipt] user=%s image_url=%s", user.id, payload.image_url)
+
+    # SSRF protection: only allow Supabase Storage URLs
+    validate_image_url(payload.image_url)
+
+    # Rate limit: prevent excessive Claude Vision API calls
+    check_rate_limit(
+        f"scan:{user.id}",
+        max_calls=settings.SCAN_RATE_LIMIT_MAX,
+        period=settings.SCAN_RATE_LIMIT_PERIOD,
+    )
 
     scan = await ReceiptScan.objects.acreate(
         user=user,

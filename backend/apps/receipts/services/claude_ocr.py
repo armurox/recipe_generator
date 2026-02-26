@@ -118,6 +118,9 @@ Rules:
 7. **Include everything**: Extract ALL visible line items, including non-food ones.
 8. **Be precise**: If you cannot determine a field, use null rather than guessing."""
 
+# Maximum image file size: 10 MB
+MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
 MEDIA_TYPE_MAP = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -200,6 +203,15 @@ class ClaudeOCRProvider(OCRProvider):
             raise OCRExtractionError(f"Failed to download image: {exc}") from exc
 
         logger.info("[_download_image] %d bytes from %s", len(resp.content), image_url)
+
+        # Validate content-type header before processing
+        content_type = resp.headers.get("content-type", "")
+        if content_type and not content_type.split(";")[0].strip().startswith("image/"):
+            raise OCRExtractionError(f"Invalid content type: {content_type}")
+
+        # Validate file size
+        if len(resp.content) > MAX_IMAGE_SIZE:
+            raise OCRExtractionError(f"Image too large: {len(resp.content)} bytes (max {MAX_IMAGE_SIZE})")
 
         # Detect media type from actual file content (magic bytes), falling back
         # to Content-Type header or URL extension if content sniffing fails.

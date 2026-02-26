@@ -2,7 +2,8 @@ import json
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
-from django.test import TestCase
+from django.core.cache import cache
+from django.test import TestCase, override_settings
 
 from apps.ingredients.models import Ingredient
 from apps.pantry.models import PantryItem
@@ -17,6 +18,9 @@ from tests.factories import (
     ReceiptScanFactory,
     UserFactory,
 )
+
+# Valid Supabase Storage URL for tests (matches SUPABASE_URL in test settings)
+VALID_IMAGE_URL = "https://test-project.supabase.co/storage/v1/object/public/receipts/test.jpg"
 
 
 # ---------------------------------------------------------------------------
@@ -132,13 +136,15 @@ class ScanReceiptAPITest(TestCase):
         # Pre-create categories so category_hint matching works
         IngredientCategoryFactory(name="Fresh Fruits", default_shelf_life=5)
         IngredientCategoryFactory(name="Poultry", default_shelf_life=3)
+        # Clear rate limit cache between tests
+        cache.clear()
 
     @patch("apps.receipts.api.ocr_provider")
     def test_scan_success(self, mock_provider):
         mock_provider.extract_receipt = AsyncMock(return_value=MOCK_OCR_RESULT)
         response = self.client.post(
             self.url,
-            data=json.dumps({"image_url": "https://example.com/receipt.jpg"}),
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
             content_type="application/json",
             **self.auth,
         )
@@ -169,7 +175,7 @@ class ScanReceiptAPITest(TestCase):
         mock_provider.extract_receipt = AsyncMock(side_effect=OCRExtractionError("API timeout"))
         response = self.client.post(
             self.url,
-            data=json.dumps({"image_url": "https://example.com/receipt.jpg"}),
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
             content_type="application/json",
             **self.auth,
         )
@@ -181,10 +187,104 @@ class ScanReceiptAPITest(TestCase):
     def test_scan_unauthenticated(self):
         response = self.client.post(
             self.url,
-            data=json.dumps({"image_url": "https://example.com/receipt.jpg"}),
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 401)
+
+    # --- SSRF protection tests ---
+
+    def test_scan_rejects_non_supabase_host(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": "https://evil.com/storage/v1/object/public/test.jpg"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Supabase Storage", response.json()["detail"])
+
+    def test_scan_rejects_http_scheme(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": "http://test-project.supabase.co/storage/v1/object/public/test.jpg"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("HTTPS", response.json()["detail"])
+
+    def test_scan_rejects_non_storage_path(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": "https://test-project.supabase.co/auth/v1/admin"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Supabase Storage", response.json()["detail"])
+
+    def test_scan_rejects_path_traversal(self):
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": "https://test-project.supabase.co/storage/../../internal/secrets"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    # --- Rate limiting tests ---
+
+    @override_settings(SCAN_RATE_LIMIT_MAX=2, SCAN_RATE_LIMIT_PERIOD=3600)
+    @patch("apps.receipts.api.ocr_provider")
+    def test_scan_rate_limit(self, mock_provider):
+        mock_provider.extract_receipt = AsyncMock(return_value=MOCK_OCR_RESULT)
+
+        # First 2 requests should succeed
+        for _ in range(2):
+            response = self.client.post(
+                self.url,
+                data=json.dumps({"image_url": VALID_IMAGE_URL}),
+                content_type="application/json",
+                **self.auth,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        # Third request should be rate limited
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 429)
+        self.assertIn("Rate limit", response.json()["detail"])
+
+    @override_settings(SCAN_RATE_LIMIT_MAX=1, SCAN_RATE_LIMIT_PERIOD=3600)
+    @patch("apps.receipts.api.ocr_provider")
+    def test_scan_rate_limit_per_user(self, mock_provider):
+        """Rate limit is per-user — different users have independent limits."""
+        mock_provider.extract_receipt = AsyncMock(return_value=MOCK_OCR_RESULT)
+
+        # First user hits the limit
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Second user should still be able to scan
+        other_user = UserFactory()
+        other_auth = make_auth_header(other_user)
+        response = self.client.post(
+            self.url,
+            data=json.dumps({"image_url": VALID_IMAGE_URL}),
+            content_type="application/json",
+            **other_auth,
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 class ListScansAPITest(TestCase):

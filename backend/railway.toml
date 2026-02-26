@@ -3,6 +3,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
+# Run migrations on every deploy using the direct DB connection (bypasses PgBouncer)
+releaseCommand = "DATABASE_URL=$DIRECT_URL python manage.py migrate --no-input"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

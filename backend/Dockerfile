@@ -14,6 +14,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Stage 2: Application
 FROM python:3.12-slim AS app
 
+# Create non-root user for runtime security
+RUN useradd --create-home --shell /bin/bash app
+
 WORKDIR /app
 
 # Copy virtualenv from deps stage
@@ -23,7 +26,7 @@ COPY --from=deps /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy application source
-COPY . .
+COPY --chown=app:app . .
 
 # Collect static files (Django Ninja docs UI, admin, whitenoise)
 # Production settings require env vars for fail-fast validation,
@@ -36,6 +39,9 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.production \
     SUPABASE_JWT_SECRET=placeholder \
     SUPABASE_URL=https://placeholder.supabase.co \
     python manage.py collectstatic --noinput
+
+# Switch to non-root user
+USER app
 
 # Default port (Railway sets $PORT)
 ENV PORT=8000

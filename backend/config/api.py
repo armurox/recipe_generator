@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from ninja import NinjaAPI
 
@@ -16,6 +17,7 @@ api = NinjaAPI(
     version="1.0.0",
     urls_namespace="api",
     auth=SupabaseJWTAuth(),
+    docs_url=getattr(settings, "NINJA_DOCS_URL", "/docs"),
 )
 
 

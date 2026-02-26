@@ -22,3 +22,5 @@ ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 
 SPOONACULAR_API_KEY = "test-spoonacular-key"
 SPOONACULAR_BASE_URL = "https://api.spoonacular.com"
+
+SUPABASE_URL = "https://test-project.supabase.co"
