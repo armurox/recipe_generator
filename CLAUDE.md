@@ -207,6 +207,11 @@ Use **`@serwist/next`** (not `next-pwa`, which is unmaintained and incompatible 
 - **Cache strategy:** cache-first for static assets, network-first for API calls (show stale data if offline), stale-while-revalidate for Spoonacular recipe images
 - **v1 scope:** installable + offline read of cached pantry/recipes. No offline writes or background sync. Show offline indicator and disable mutating actions when offline
 
+## Library Documentation
+- **Always use Context7** (via the `mcp__context7` tools) to look up documentation and code examples for any library or framework used in this project (Django, Django Ninja, Next.js, TanStack Query, Supabase, Tailwind, shadcn/ui, Playwright, Vitest, etc.)
+- Call `resolve-library-id` first to get the Context7-compatible library ID, then `query-docs` with a specific question
+- Prefer Context7 over web search or training knowledge for library usage — it returns up-to-date docs and real code examples
+
 ## Future Considerations
 - Evaluate cacheops / Redis for caching when query performance becomes a concern
 - Set up centralized logging pipeline (ELK / CloudWatch) on deployment — backend container logs piped to aggregator
