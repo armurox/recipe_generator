@@ -1,0 +1,39 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+# Deploys backend to Railway (production) when code is pushed to the main
+# branch (typically via staging → main merge).
+# Frontend is deployed automatically by Vercel's native git integration
+# (main branch → Production deployment with Production env vars).
+#
+# Prerequisites:
+#   Secrets: RAILWAY_TOKEN
+#   Variables: RAILWAY_SERVICE_ID (production service)
+
+jobs:
+  # ── Backend → Railway (production) ────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to Railway (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Railway production project is set up
+      # - name: Install Railway CLI
+      #   run: npm install -g @railway/cli
+
+      # - name: Deploy to Railway
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      #   run: railway up --service ${{ vars.RAILWAY_SERVICE_ID }}
+
+      - run: echo "Backend production deployment placeholder — configure Railway secrets to enable"
+
+  # ── Frontend → Vercel (handled automatically) ────────────────────────
+  # Vercel's native git integration deploys the frontend automatically:
+  #   - main branch push → Vercel Production deployment
+  #   - Production env vars (NEXT_PUBLIC_SUPABASE_URL, etc.) point to prod Supabase
+  #   - No GitHub Actions step needed — Vercel watches the repo directly

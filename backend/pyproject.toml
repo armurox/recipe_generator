@@ -1,0 +1,50 @@
+[project]
+name = "pantrychef-backend"
+version = "0.1.0"
+description = "PantryChef — Recipe Generator Backend"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.0,<6.1",
+    "django-ninja>=1.3,<2.0",
+    "django-cors-headers>=4.6,<5.0",
+    "uvicorn[standard]>=0.34,<1.0",
+    "gunicorn>=23.0,<24.0",
+    "whitenoise>=6.8,<7.0",
+    "pyjwt[crypto]>=2.10,<3.0",
+    "dj-database-url>=2.3,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "httpx>=0.28,<1.0",
+    "anthropic>=0.42,<1.0",
+    "psycopg[binary]>=3.2,<4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-django>=4.9,<5.0",
+    "pytest-asyncio>=0.24,<1.0",
+    "ruff>=0.9,<1.0",
+    "factory-boy>=3.3,<4.0",
+    "pre-commit>=4.0,<5.0",
+    "ty>=0.0.1a0",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ty.rules]
+# Django ORM uses metaclass-injected managers (.objects) and field descriptors
+# that ty can't resolve yet — demote to warnings so they don't block CI/commits
+unresolved-attribute = "warn"
+possibly-missing-attribute = "ignore"
+invalid-assignment = "warn"
+# Anthropic SDK uses complex overloaded types that ty can't narrow correctly
+invalid-argument-type = "warn"
+# Wildcard imports (e.g. local.py importing from base.py) lose type info for nested dicts
+not-subscriptable = "warn"

@@ -1,0 +1,38 @@
+name: Deploy Beta
+
+on:
+  push:
+    branches: [staging]
+
+# Deploys backend to Railway (beta) when code is pushed to the staging branch.
+# Frontend is deployed automatically by Vercel's native git integration
+# (staging branch → Preview deployment with Preview env vars).
+#
+# Prerequisites:
+#   Secrets: RAILWAY_TOKEN
+#   Variables: RAILWAY_SERVICE_ID (beta service)
+
+jobs:
+  # ── Backend → Railway (beta) ──────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to Railway (Beta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Uncomment once Railway beta project is set up
+      # - name: Install Railway CLI
+      #   run: npm install -g @railway/cli
+
+      # - name: Deploy to Railway
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      #   run: railway up --service ${{ vars.RAILWAY_SERVICE_ID }}
+
+      - run: echo "Backend beta deployment placeholder — configure Railway secrets to enable"
+
+  # ── Frontend → Vercel (handled automatically) ────────────────────────
+  # Vercel's native git integration deploys the frontend automatically:
+  #   - staging branch push → Vercel Preview deployment
+  #   - Preview env vars (NEXT_PUBLIC_SUPABASE_URL, etc.) point to beta Supabase
+  #   - No GitHub Actions step needed — Vercel watches the repo directly
