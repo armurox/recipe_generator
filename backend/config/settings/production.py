@@ -28,6 +28,7 @@ if not SUPABASE_URL:  # noqa: F405
 
 # --- HTTPS security ---
 SECURE_SSL_REDIRECT = True
+SECURE_REDIRECT_EXEMPT = [r"^api/v1/health$"]  # Allow HTTP health checks from load balancer
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
