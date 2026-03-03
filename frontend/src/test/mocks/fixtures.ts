@@ -18,6 +18,7 @@ export const mockUser: User = {
   display_name: "Test User",
   dietary_prefs: ["vegetarian"],
   household_size: 2,
+  feedback_consent: false,
 };
 
 export const mockPantryItem: PantryItem = {

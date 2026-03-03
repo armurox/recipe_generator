@@ -26,6 +26,7 @@ class UserOut(Schema):
     display_name: str
     dietary_prefs: list[str] = Field(description="List of dietary preferences (e.g. 'vegetarian', 'gluten free')")
     household_size: int = Field(description="Number of people in the household, used for recipe scaling")
+    feedback_consent: bool = Field(description="Whether user has opted in to receiving feedback")
 
 
 class UserUpdateIn(Schema):
@@ -36,6 +37,7 @@ class UserUpdateIn(Schema):
     household_size: int | None = Field(
         default=None, description="Number of people in the household, used for recipe scaling"
     )
+    feedback_consent: bool | None = Field(default=None, description="Whether user opts in to receiving feedback")
 
     @field_validator("dietary_prefs")
     @classmethod
