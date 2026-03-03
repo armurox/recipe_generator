@@ -90,9 +90,10 @@ export default function ScanPage() {
                 Tips for best results
               </div>
               <ul className="list-disc space-y-0.5 pl-4 text-[13px] leading-relaxed text-gray-700">
-                <li>Flatten the receipt on a flat surface</li>
-                <li>Make sure the text is in focus</li>
-                <li>Include the entire receipt in frame</li>
+                <li>Place receipts flat on a surface</li>
+                <li>For food items, capture the label or packaging</li>
+                <li>Make sure the text is clear and in focus</li>
+                <li>Include the full item in frame</li>
                 <li>Avoid shadows and glare</li>
               </ul>
             </div>
