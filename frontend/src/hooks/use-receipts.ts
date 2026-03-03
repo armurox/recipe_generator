@@ -8,6 +8,7 @@ import type {
   ReceiptScan,
   ReceiptScanDetail,
   ScanReceiptInput,
+  UpdateScanInput,
 } from "@/types/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -36,6 +37,19 @@ export function useScanReceipt() {
       apiClient.post<ReceiptScanDetail>("/receipts/scan", input, { timeout: 120_000 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
+    },
+  });
+}
+
+export function useUpdateScan(scanId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateScanInput) =>
+      apiClient.patch<ReceiptScanDetail>(`/receipts/${scanId}/`, input),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["receipts", "scan", scanId], data);
+      queryClient.invalidateQueries({ queryKey: ["receipts", "scans"] });
     },
   });
 }

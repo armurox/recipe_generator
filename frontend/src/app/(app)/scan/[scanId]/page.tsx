@@ -2,11 +2,16 @@
 
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useConfirmReceipt, useDeleteScan, useScanDetail } from "@/hooks/use-receipts";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import {
+  useConfirmReceipt,
+  useDeleteScan,
+  useScanDetail,
+  useUpdateScan,
+} from "@/hooks/use-receipts";
+import { ArrowLeft, CheckCircle, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ConfirmActions } from "./_components/confirm-actions";
@@ -27,7 +32,11 @@ export default function ScanReviewPage() {
   const router = useRouter();
   const { data: scan, isLoading } = useScanDetail(params.scanId);
   const confirmReceipt = useConfirmReceipt(params.scanId);
+  const updateScan = useUpdateScan(params.scanId);
   const deleteScan = useDeleteScan();
+
+  const [editingStoreName, setEditingStoreName] = useState<string | null>(null);
+  const storeInputRef = useRef<HTMLInputElement>(null);
 
   const isConfirmed = scan?.status === "confirmed";
 
@@ -56,6 +65,19 @@ export default function ScanReviewPage() {
       });
     }
   }, [foodItems, fields.length, form]);
+
+  function handleStoreEdit() {
+    setEditingStoreName(scan?.store_name ?? "");
+    setTimeout(() => storeInputRef.current?.focus(), 0);
+  }
+
+  function handleStoreSave() {
+    const trimmed = (editingStoreName ?? "").trim();
+    setEditingStoreName(null);
+    if (trimmed !== (scan?.store_name ?? "")) {
+      updateScan.mutate({ store_name: trimmed || null });
+    }
+  }
 
   // Confidence score: percentage of items with a resolved ingredient name
   const confidenceScore = useMemo(() => {
@@ -146,12 +168,35 @@ export default function ScanReviewPage() {
         {/* Store banner */}
         <div className="mb-4 flex items-center gap-3 rounded-xl bg-green-50 px-4 py-3">
           <span className="text-2xl">🏪</span>
-          <div>
-            <div className="text-[14px] font-semibold text-gray-900">
-              {scan.store_name || "Unknown Store"}
-            </div>
+          <div className="min-w-0 flex-1">
+            {editingStoreName !== null ? (
+              <input
+                ref={storeInputRef}
+                type="text"
+                value={editingStoreName}
+                onChange={(e) => setEditingStoreName(e.target.value)}
+                onBlur={handleStoreSave}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleStoreSave();
+                  if (e.key === "Escape") setEditingStoreName(null);
+                }}
+                className="w-full rounded bg-white px-2 py-0.5 text-[14px] font-semibold text-gray-900 outline-none ring-1 ring-green-300 focus:ring-2 focus:ring-green-500"
+                placeholder="e.g. Whole Foods, My Pantry"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleStoreEdit}
+                className="group flex items-center gap-1.5"
+              >
+                <span className="text-[14px] font-semibold text-gray-900">
+                  {scan.store_name || "Unknown"}
+                </span>
+                <Pencil className="h-3 w-3 text-gray-400 group-hover:text-gray-600" />
+              </button>
+            )}
             <div className="text-[12px] text-gray-500">
-              Detected from receipt · {foodItems.length} items found
+              Detected from scan · {foodItems.length} items found
             </div>
           </div>
         </div>
