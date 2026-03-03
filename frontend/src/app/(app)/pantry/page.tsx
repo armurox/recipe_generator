@@ -15,6 +15,7 @@ import { useCurrentUser } from "@/hooks/use-user";
 import type { PantryItem } from "@/types/api";
 import { Camera, CheckSquare, Package, Plus, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AddItemDialog } from "./_components/add-item-dialog";
@@ -75,7 +76,9 @@ function mergeItems(clientItems: PantryItem[], serverItems: PantryItem[]): Pantr
 }
 
 export default function PantryPage() {
-  const [filter, setFilter] = useState<PageFilter>("all");
+  const searchParams = useSearchParams();
+  const initialFilter: PageFilter = searchParams.get("view") === "shopping" ? "to_buy" : "all";
+  const [filter, setFilter] = useState<PageFilter>(initialFilter);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
   const { data: user } = useCurrentUser();

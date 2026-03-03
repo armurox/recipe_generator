@@ -1,5 +1,6 @@
 "use client";
 
+import { ShoppingCartLink } from "@/components/shopping-cart-link";
 import { Settings } from "lucide-react";
 import { ExpiringList } from "./_components/expiring-list";
 import { QuickActions } from "./_components/quick-actions";
@@ -22,12 +23,15 @@ export default function DashboardPage() {
           <h1 className="text-[28px] font-bold text-gray-900">{getGreeting()}</h1>
           <p className="mt-0.5 text-sm text-gray-500">Here&apos;s your pantry overview</p>
         </div>
-        <Link
-          href="/settings"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white"
-        >
-          <Settings size={18} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <ShoppingCartLink />
+          <Link
+            href="/settings"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-green-600 text-white"
+          >
+            <Settings size={18} />
+          </Link>
+        </div>
       </div>
 
       <div className="px-5 pb-24">
