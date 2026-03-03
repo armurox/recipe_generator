@@ -14,6 +14,7 @@ class PantryItem(AbstractUUIDTimestampModel):
         AVAILABLE = "available", "Available"
         EXPIRED = "expired", "Expired"
         USED_UP = "used_up", "Used Up"
+        TO_BUY = "to_buy", "To Buy"
 
     user = models.ForeignKey(
         "users.User",

@@ -100,6 +100,7 @@ export default function PantryPage() {
     if (filter === "available") return { status: "available" };
     if (filter === "expiring") return { status: "available", expiring_within: 3 };
     if (filter === "expired") return { status: "expired" };
+    if (filter === "to_buy") return { status: "to_buy" };
     return {};
   }, [filter]);
 
@@ -212,6 +213,19 @@ export default function PantryPage() {
     setEditSheetOpen(true);
   }, []);
 
+  const handleMarkPurchased = useCallback(
+    (id: string) => {
+      updatePantryItem.mutate(
+        { id, data: { status: "available" } },
+        {
+          onSuccess: () => toast.success("Marked as purchased"),
+          onError: () => toast.error("Failed to mark as purchased"),
+        },
+      );
+    },
+    [updatePantryItem],
+  );
+
   const isDeleting = deletePantryItem.isPending || bulkDeletePantryItems.isPending;
   const deleteCount = pendingDeleteId ? 1 : selectedIds.size;
 
@@ -285,16 +299,22 @@ export default function PantryPage() {
           </div>
         ) : groups.length === 0 ? (
           <div className="px-5 py-10 text-center">
-            <div className="mb-3 text-5xl">📦</div>
+            <div className="mb-3 text-5xl">{filter === "to_buy" ? "🛒" : "📦"}</div>
             <h2 className="mb-2 text-lg font-semibold">
-              {isActiveSearch ? "No items found" : "Your pantry is empty"}
+              {isActiveSearch
+                ? "No items found"
+                : filter === "to_buy"
+                  ? "Your shopping list is empty"
+                  : "Your pantry is empty"}
             </h2>
             <p className="mb-4 text-sm text-gray-500">
               {isActiveSearch
                 ? `No items matching "${search}"`
-                : "Scan a receipt to start tracking your groceries"}
+                : filter === "to_buy"
+                  ? "Tap + to add items you need to buy"
+                  : "Scan a receipt to start tracking your groceries"}
             </p>
-            {!isActiveSearch && (
+            {!isActiveSearch && filter !== "to_buy" && (
               <Link
                 href="/scan"
                 className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-3 text-sm font-semibold text-white"
@@ -324,6 +344,7 @@ export default function PantryPage() {
                 onDeleteItem={handleDeleteItem}
                 onQuantityChange={handleQuantityChange}
                 onEditItem={handleEditItem}
+                onMarkPurchased={handleMarkPurchased}
               />
             ))}
           </div>
@@ -352,7 +373,11 @@ export default function PantryPage() {
       />
 
       {/* Add item dialog */}
-      <AddItemDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <AddItemDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        defaultStatus={filter === "to_buy" ? "to_buy" : "available"}
+      />
 
       {/* Edit item sheet */}
       <EditItemSheet item={editItem} open={editSheetOpen} onOpenChange={setEditSheetOpen} />

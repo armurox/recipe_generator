@@ -54,7 +54,7 @@ class PantryItemUpdateIn(Schema):
     quantity: Decimal | None = None
     unit: str | None = None
     expiry_date: date | None = None
-    status: str | None = Field(default=None, description="One of: available, expired, used_up")
+    status: str | None = Field(default=None, description="One of: available, expired, used_up, to_buy")
     category_hint: str | None = Field(default=None, description="Category name — creates category if it doesn't exist")
 
 
@@ -70,6 +70,25 @@ class BulkDeleteOut(Schema):
     deleted_count: int = Field(description="Number of items actually deleted")
 
 
+class BulkCreateItemIn(Schema):
+    ingredient_name: str = Field(description="Name of the ingredient to add")
+    quantity: Decimal | None = Field(default=None, description="Quantity of the item")
+    unit: str | None = Field(default=None, description="Unit of measurement")
+    expiry_date: date | None = Field(default=None, description="Override auto-calculated expiry date")
+    category_hint: str | None = Field(default=None, description="Category name hint for new ingredients")
+    status: str = Field(default="available", description="One of: available, to_buy")
+
+
+class BulkCreateIn(Schema):
+    items: list[BulkCreateItemIn] = Field(description="List of items to add (max 50)")
+
+
+class BulkCreateOut(Schema):
+    created_count: int = Field(description="Number of new items created")
+    updated_count: int = Field(description="Number of existing items updated (quantity merged)")
+    items: list[PantryItemOut]
+
+
 class CategorySummaryOut(Schema):
     category_id: int | None = None
     category_name: str
@@ -77,6 +96,7 @@ class CategorySummaryOut(Schema):
     available_count: int
     expired_count: int
     used_up_count: int
+    to_buy_count: int
     expiring_soon_count: int
     total_count: int
 
@@ -86,4 +106,5 @@ class PantrySummaryOut(Schema):
     total_available: int
     total_expired: int
     total_expiring_soon: int
+    total_to_buy: int
     categories: list[CategorySummaryOut]

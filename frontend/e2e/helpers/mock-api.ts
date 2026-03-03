@@ -51,7 +51,18 @@ const mockRecipe = {
 };
 
 export async function mockApiRoutes(page: Page) {
-  let pantryItems = [mockPantryItem];
+  let pantryItems: Array<{
+    id: string;
+    ingredient: { id: number; name: string; category_name: string; category_icon: string | null };
+    quantity: number | null;
+    unit: string | null;
+    added_date: string;
+    expiry_date: string;
+    source: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  }> = [mockPantryItem];
   let savedRecipeIds: string[] = [];
 
   // Use a single catch-all route for the API
@@ -72,12 +83,15 @@ export async function mockApiRoutes(page: Page) {
 
     // ── Pantry ──
     if (path === "/pantry/summary") {
+      const toBuyCount = pantryItems.filter((i) => i.status === "to_buy").length;
+      const availableCount = pantryItems.filter((i) => i.status === "available").length;
       return route.fulfill({
         json: {
           total_items: pantryItems.length,
-          total_available: pantryItems.length,
+          total_available: availableCount,
           total_expired: 0,
           total_expiring_soon: 0,
+          total_to_buy: toBuyCount,
           categories: [],
         },
       });
@@ -85,6 +99,20 @@ export async function mockApiRoutes(page: Page) {
 
     if (path.startsWith("/pantry/expiring")) {
       return route.fulfill({ json: [] });
+    }
+
+    if (path === "/pantry/bulk-create") {
+      const body = JSON.parse(route.request().postData() ?? "{}");
+      const items = (body.items as Array<{ ingredient_name: string; quantity?: number; unit?: string; status?: string }>).map((item, i) => ({
+        ...mockPantryItem,
+        id: `e2e-bulk-${Date.now()}-${i}`,
+        ingredient: { ...mockPantryItem.ingredient, name: item.ingredient_name },
+        quantity: item.quantity ?? null,
+        unit: item.unit ?? null,
+        status: item.status || "available",
+      }));
+      pantryItems.push(...items);
+      return route.fulfill({ json: { created_count: items.length, updated_count: 0, items } });
     }
 
     if (path === "/pantry/bulk-delete") {

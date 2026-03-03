@@ -11,6 +11,8 @@ from apps.core.schemas import ErrorOut
 from apps.ingredients.models import IngredientCategory
 from apps.pantry.models import PantryItem
 from apps.pantry.schemas import (
+    BulkCreateIn,
+    BulkCreateOut,
     BulkDeleteIn,
     BulkDeleteOut,
     CategorySummaryOut,
@@ -147,6 +149,7 @@ async def pantry_summary(request):
             available_count=Count("id", filter=Q(status=PantryItem.Status.AVAILABLE)),
             expired_count=Count("id", filter=Q(status=PantryItem.Status.EXPIRED)),
             used_up_count=Count("id", filter=Q(status=PantryItem.Status.USED_UP)),
+            to_buy_count=Count("id", filter=Q(status=PantryItem.Status.TO_BUY)),
             expiring_soon_count=Count(
                 "id",
                 filter=Q(
@@ -164,6 +167,7 @@ async def pantry_summary(request):
     total_available = 0
     total_expired = 0
     total_expiring_soon = 0
+    total_to_buy = 0
 
     for row in category_stats:
         categories.append(
@@ -174,6 +178,7 @@ async def pantry_summary(request):
                 available_count=row["available_count"],
                 expired_count=row["expired_count"],
                 used_up_count=row["used_up_count"],
+                to_buy_count=row["to_buy_count"],
                 expiring_soon_count=row["expiring_soon_count"],
                 total_count=row["total_count"],
             )
@@ -182,12 +187,14 @@ async def pantry_summary(request):
         total_available += row["available_count"]
         total_expired += row["expired_count"]
         total_expiring_soon += row["expiring_soon_count"]
+        total_to_buy += row["to_buy_count"]
 
     return PantrySummaryOut(
         total_items=total_items,
         total_available=total_available,
         total_expired=total_expired,
         total_expiring_soon=total_expiring_soon,
+        total_to_buy=total_to_buy,
         categories=categories,
     )
 
@@ -195,6 +202,98 @@ async def pantry_summary(request):
 # ---------------------------------------------------------------------------
 # Bulk operations
 # ---------------------------------------------------------------------------
+
+
+@router.post("/bulk-create", response={201: BulkCreateOut, 400: ErrorOut})
+async def bulk_create_pantry_items(request, payload: BulkCreateIn):
+    """Add multiple items to the pantry in a single request.
+
+    Accepts up to 50 items. Each item can be either 'available' or 'to_buy'.
+    For 'available' items, uses the same upsert logic as add_pantry_item:
+    if the user already has an available item for the same ingredient,
+    quantities are merged. 'to_buy' items always create new rows (no upsert).
+
+    Returns the count of created/updated items and the full item list.
+    """
+    user = request.auth
+    valid_statuses = {"available", "to_buy"}
+
+    if not payload.items:
+        raise HttpError(400, "Items list cannot be empty")
+    if len(payload.items) > 50:
+        raise HttpError(400, "Cannot add more than 50 items at once")
+
+    # Validate all statuses up front before making any DB changes
+    for item_in in payload.items:
+        if item_in.status not in valid_statuses:
+            raise HttpError(400, f"Invalid status '{item_in.status}'. Must be one of: available, to_buy")
+
+    created_count = 0
+    updated_count = 0
+    result_items = []
+
+    for item_in in payload.items:
+        ingredient = await get_or_create_ingredient(item_in.ingredient_name, item_in.category_hint, item_in.unit)
+
+        if item_in.status == "to_buy":
+            # to_buy items always create new rows — no upsert
+            expiry = item_in.expiry_date
+            unit = item_in.unit or ingredient.common_unit
+            item = await PantryItem.objects.acreate(
+                user=user,
+                ingredient=ingredient,
+                quantity=item_in.quantity,
+                unit=unit,
+                expiry_date=expiry,
+                source=PantryItem.Source.MANUAL,
+                status=PantryItem.Status.TO_BUY,
+            )
+            item = await PantryItem.objects.select_related("ingredient__category").aget(id=item.id)
+            result_items.append(await _build_pantry_item_response(item))
+            created_count += 1
+        else:
+            # available items use upsert logic (merge quantities)
+            try:
+                existing = await PantryItem.objects.select_related("ingredient__category").aget(
+                    user=user,
+                    ingredient=ingredient,
+                    status=PantryItem.Status.AVAILABLE,
+                )
+                if item_in.quantity and existing.quantity:
+                    existing.quantity += item_in.quantity
+                elif item_in.quantity:
+                    existing.quantity = item_in.quantity
+                if item_in.unit:
+                    existing.unit = item_in.unit
+                if item_in.expiry_date:
+                    existing.expiry_date = item_in.expiry_date
+                await existing.asave()
+                existing = await PantryItem.objects.select_related("ingredient__category").aget(id=existing.id)
+                result_items.append(await _build_pantry_item_response(existing))
+                updated_count += 1
+            except PantryItem.DoesNotExist:
+                expiry = item_in.expiry_date or await calculate_expiry_date(ingredient)
+                unit = item_in.unit or ingredient.common_unit
+                item = await PantryItem.objects.acreate(
+                    user=user,
+                    ingredient=ingredient,
+                    quantity=item_in.quantity,
+                    unit=unit,
+                    expiry_date=expiry,
+                    source=PantryItem.Source.MANUAL,
+                )
+                item = await PantryItem.objects.select_related("ingredient__category").aget(id=item.id)
+                result_items.append(await _build_pantry_item_response(item))
+                created_count += 1
+
+    logger.info(
+        "[bulk_create_pantry_items] user=%s total=%d created=%d updated=%d",
+        user.id,
+        len(payload.items),
+        created_count,
+        updated_count,
+    )
+    return 201, {"created_count": created_count, "updated_count": updated_count, "items": result_items}
 
 
 @router.post("/bulk-delete", response={200: BulkDeleteOut, 400: ErrorOut})
@@ -304,6 +403,41 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
         valid_statuses = {s.value for s in PantryItem.Status}
         if payload.status not in valid_statuses:
             raise HttpError(400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+
+        # Decision: When marking a to_buy item as "available", check if there's already
+        # an available item for the same ingredient. If so, merge quantities into the
+        # existing item and delete the to_buy item. This prevents duplicate available rows.
+        if payload.status == PantryItem.Status.AVAILABLE and item.status == PantryItem.Status.TO_BUY:
+            try:
+                existing_available = await PantryItem.objects.select_related("ingredient__category").aget(
+                    user=request.auth,
+                    ingredient=item.ingredient,
+                    status=PantryItem.Status.AVAILABLE,
+                )
+                # Merge quantities
+                new_qty = payload.quantity if payload.quantity is not None else item.quantity
+                if new_qty and existing_available.quantity:
+                    existing_available.quantity += new_qty
+                elif new_qty:
+                    existing_available.quantity = new_qty
+                if payload.unit is not None:
+                    existing_available.unit = payload.unit
+                if payload.expiry_date is not None:
+                    existing_available.expiry_date = payload.expiry_date
+                await existing_available.asave()
+                await item.adelete()
+                existing_available = await PantryItem.objects.select_related("ingredient__category").aget(
+                    id=existing_available.id
+                )
+                logger.info(
+                    "[update_pantry_item] merged to_buy item=%s into available item=%s",
+                    item_id,
+                    existing_available.id,
+                )
+                return await _build_pantry_item_response(existing_available)
+            except PantryItem.DoesNotExist:
+                pass  # No existing available item — proceed with normal status update
+
         item.status = payload.status
     if payload.quantity is not None:
         item.quantity = payload.quantity

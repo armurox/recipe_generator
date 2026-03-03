@@ -2,6 +2,8 @@
 
 import { apiClient } from "@/lib/api";
 import type {
+  BulkCreateInput,
+  BulkCreateOutput,
   BulkDeleteOutput,
   PaginatedResponse,
   PantryItem,
@@ -151,6 +153,18 @@ export function useAddPantryItem() {
   return useMutation({
     mutationFn: (data: PantryItemCreateInput) =>
       apiClient.post<PantryItemCreateOutput>("/pantry/", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
+    },
+  });
+}
+
+export function useBulkAddPantryItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BulkCreateInput) =>
+      apiClient.post<BulkCreateOutput>("/pantry/bulk-create", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });

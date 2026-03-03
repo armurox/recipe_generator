@@ -7,6 +7,7 @@ const FILTERS = [
   { key: "available", label: "Available" },
   { key: "expiring", label: "Expiring" },
   { key: "expired", label: "Expired" },
+  { key: "to_buy", label: "Shopping" },
 ] as const;
 
 export type PantryFilter = (typeof FILTERS)[number]["key"];

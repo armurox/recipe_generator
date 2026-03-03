@@ -18,16 +18,16 @@ test.describe("Pantry CRUD", () => {
     const addButton = page.locator('button:has(svg.lucide-plus)');
     await addButton.click();
 
-    // Fill add item form
+    // Fill add item form (multi-row bulk add dialog)
     await page.getByPlaceholder("e.g. Chicken Breast").fill("Tomatoes");
-    await page.getByPlaceholder("500").fill("6");
-    await page.getByRole("textbox", { name: "g", exact: true }).fill("pcs");
+    await page.locator('input[name="items.0.quantity"]').fill("6");
+    await page.locator('input[name="items.0.unit"]').fill("pcs");
 
-    // Submit
-    await page.getByRole("button", { name: "Add Item" }).click();
+    // Submit — button shows count of filled items
+    await page.getByRole("button", { name: "Add 1 Item" }).click();
 
-    // Toast should confirm
-    await expect(page.getByText("Tomatoes added to pantry")).toBeVisible();
+    // Toast should confirm bulk add
+    await expect(page.getByText("1 item: 1 added")).toBeVisible();
 
     // New item should appear in the list (use exact match to avoid toast collision)
     await expect(page.getByText("Tomatoes", { exact: true })).toBeVisible();

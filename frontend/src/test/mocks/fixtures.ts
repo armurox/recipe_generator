@@ -1,4 +1,5 @@
 import type {
+  BulkCreateOutput,
   CookingLog,
   PaginatedResponse,
   PantryItem,
@@ -72,6 +73,7 @@ export const mockPantrySummary: PantrySummary = {
   total_available: 2,
   total_expired: 0,
   total_expiring_soon: 1,
+  total_to_buy: 0,
   categories: [
     {
       category_id: 1,
@@ -81,6 +83,7 @@ export const mockPantrySummary: PantrySummary = {
       expired_count: 0,
       used_up_count: 0,
       expiring_soon_count: 0,
+      to_buy_count: 0,
       total_count: 1,
     },
     {
@@ -91,9 +94,16 @@ export const mockPantrySummary: PantrySummary = {
       expired_count: 0,
       used_up_count: 0,
       expiring_soon_count: 1,
+      to_buy_count: 0,
       total_count: 1,
     },
   ],
+};
+
+export const mockBulkCreateOutput: BulkCreateOutput = {
+  created_count: 2,
+  updated_count: 0,
+  items: [mockPantryItem, mockPantryItem2],
 };
 
 export const mockRecipeSummary: RecipeSummary = {
