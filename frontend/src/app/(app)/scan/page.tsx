@@ -70,8 +70,10 @@ export default function ScanPage() {
   return (
     <div>
       <div className="px-5 pb-4 pt-3">
-        <h1 className="text-[28px] font-bold text-gray-900">Scan Receipt</h1>
-        <p className="mt-0.5 text-sm text-gray-500">Add items to your pantry</p>
+        <h1 className="text-[28px] font-bold text-gray-900">Scan Items</h1>
+        <p className="mt-0.5 text-sm text-gray-500">
+          Scan a receipt or food items to add to your pantry
+        </p>
       </div>
 
       <div className="px-5 pb-24">

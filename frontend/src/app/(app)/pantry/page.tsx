@@ -380,7 +380,7 @@ export default function PantryPage() {
                 ? `No items matching "${search}"`
                 : filter === "to_buy"
                   ? "Tap + to add items you need to buy"
-                  : "Scan a receipt to start tracking your groceries"}
+                  : "Scan a receipt or food items to start tracking your groceries"}
             </p>
             {!isActiveSearch && filter !== "to_buy" && (
               <Link
@@ -388,7 +388,7 @@ export default function PantryPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-green-700 px-6 py-3 text-sm font-semibold text-white"
               >
                 <Camera className="h-4 w-4" />
-                Scan Receipt
+                Scan Items
               </Link>
             )}
           </div>
