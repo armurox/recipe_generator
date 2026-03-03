@@ -33,7 +33,7 @@ export function useScanReceipt() {
 
   return useMutation({
     mutationFn: (input: ScanReceiptInput) =>
-      apiClient.post<ReceiptScanDetail>("/receipts/scan", input),
+      apiClient.post<ReceiptScanDetail>("/receipts/scan", input, { timeout: 120_000 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
     },
