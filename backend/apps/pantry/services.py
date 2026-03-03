@@ -41,11 +41,9 @@ async def get_or_create_ingredient(name: str, category_hint: str | None, unit: s
 
     ingredient, created = await Ingredient.objects.aget_or_create(name=normalized, defaults=defaults)
 
-    # Assign category if hint provided and ingredient has no category yet
-    if created and category_hint:
-        category = await get_or_create_category(category_hint)
-        ingredient.category = category
-        await ingredient.asave()
+    # Assign or update category when hint is provided
+    if category_hint:
+        await update_ingredient_category(ingredient, category_hint)
 
     if created:
         logger.debug("[get_or_create_ingredient] created ingredient=%s category=%s", normalized, category_hint)
