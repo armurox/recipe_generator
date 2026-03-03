@@ -129,3 +129,37 @@ class GetMeTest(TestCase):
     def test_invalid_token(self):
         response = self.client.get("/api/v1/me", HTTP_AUTHORIZATION="Bearer invalid")
         self.assertEqual(response.status_code, 401)
+
+    def test_get_me_includes_feedback_consent(self):
+        response = self.client.get("/api/v1/me", **self.auth)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("feedback_consent", data)
+        self.assertFalse(data["feedback_consent"])
+
+    def test_patch_feedback_consent_sets_timestamp(self):
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"feedback_consent": True}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["feedback_consent"])
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.feedback_consent)
+        self.assertIsNotNone(self.user.feedback_consent_updated_at)
+
+    def test_patch_other_fields_does_not_affect_feedback_consent(self):
+        response = self.client.patch(
+            "/api/v1/me",
+            data=json.dumps({"display_name": "New Name"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.feedback_consent)
+        self.assertIsNone(self.user.feedback_consent_updated_at)

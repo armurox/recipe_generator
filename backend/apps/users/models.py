@@ -31,6 +31,15 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractTimestampModel):
     display_name = models.CharField(max_length=100, blank=True, default="")
     dietary_prefs = models.JSONField(default=list, blank=True)
     household_size = models.SmallIntegerField(default=1)
+    feedback_consent = models.BooleanField(
+        default=False,
+        help_text="User has opted in to being contacted for feedback",
+    )
+    feedback_consent_updated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When feedback consent was last changed (GDPR audit trail)",
+    )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 

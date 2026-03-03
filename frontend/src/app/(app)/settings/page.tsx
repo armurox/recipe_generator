@@ -3,7 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser, useUpdateUser } from "@/hooks/use-user";
 import { useAuth } from "@/lib/auth-context";
-import { Check, ChevronRight, LogOut, Minus, Plus, User } from "lucide-react";
+import { Check, ChevronRight, LogOut, MessageCircle, Minus, Plus, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -220,6 +220,59 @@ function HouseholdSection() {
   );
 }
 
+function FeedbackConsentSection() {
+  const { data: user, isLoading } = useCurrentUser();
+  const updateUser = useUpdateUser();
+
+  const consent = user?.feedback_consent ?? false;
+
+  function toggleConsent() {
+    updateUser.mutate(
+      { feedback_consent: !consent },
+      { onError: () => toast.error("Failed to update feedback preference") },
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl bg-white px-4 py-4 shadow-sm">
+        <Skeleton className="mb-3 h-4 w-36" />
+        <Skeleton className="h-6 w-12 rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-white px-4 py-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <MessageCircle size={18} className="text-green-700" />
+          <div>
+            <h3 className="text-[15px] font-semibold text-gray-900">Feedback</h3>
+            <p className="text-[13px] text-gray-500">Receive occasional feedback requests</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={consent}
+          onClick={toggleConsent}
+          disabled={updateUser.isPending}
+          className={`relative h-7 w-12 rounded-full transition-colors disabled:opacity-50 ${
+            consent ? "bg-green-700" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+              consent ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SignOutButton() {
   const { signOut } = useAuth();
   const router = useRouter();
@@ -257,6 +310,7 @@ export default function SettingsPage() {
         <ProfileSection />
         <DietaryPrefsSection />
         <HouseholdSection />
+        <FeedbackConsentSection />
         <SignOutButton />
       </div>
     </div>

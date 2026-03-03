@@ -17,12 +17,14 @@ export type User = {
   display_name: string;
   dietary_prefs: string[];
   household_size: number;
+  feedback_consent: boolean;
 };
 
 export type UserUpdate = {
   display_name?: string | null;
   dietary_prefs?: string[] | null;
   household_size?: number | null;
+  feedback_consent?: boolean | null;
 };
 
 // ── Pantry ──
