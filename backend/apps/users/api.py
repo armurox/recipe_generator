@@ -1,3 +1,4 @@
+from django.utils import timezone
 from ninja import Router
 
 from apps.core.schemas import ErrorOut
@@ -26,7 +27,10 @@ def update_me(request, payload: UserUpdateIn):
     user = request.auth
     # Decision: model_dump(exclude_unset=True) skips fields the client didn't send,
     # so unchanged fields aren't overwritten with None defaults.
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
         setattr(user, field, value)
+    if "feedback_consent" in update_data:
+        user.feedback_consent_updated_at = timezone.now()
     user.save()
     return user

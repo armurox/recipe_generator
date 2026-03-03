@@ -16,6 +16,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     id = factory.LazyFunction(uuid.uuid4)
     email = factory.Sequence(lambda n: f"user{n}@example.com")
     display_name = factory.Faker("name")
+    feedback_consent = False
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):

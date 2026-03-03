@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const registerSchema = z.object({
@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const { signInWithGoogle, signUpWithEmail } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const feedbackConsentRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -36,9 +37,13 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
     try {
+      if (feedbackConsentRef.current?.checked) {
+        localStorage.setItem("pantrychef_pending_feedback_consent", "true");
+      }
       await signUpWithEmail(data.email, data.password, data.displayName);
       toast.success("Account created! Check your email to confirm.");
     } catch (error: unknown) {
+      localStorage.removeItem("pantrychef_pending_feedback_consent");
       const message = error instanceof Error ? error.message : "Failed to create account";
       toast.error(message);
     } finally {
@@ -49,8 +54,12 @@ export default function RegisterPage() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
+      if (feedbackConsentRef.current?.checked) {
+        localStorage.setItem("pantrychef_pending_feedback_consent", "true");
+      }
       await signInWithGoogle();
     } catch {
+      localStorage.removeItem("pantrychef_pending_feedback_consent");
       toast.error("Failed to sign in with Google");
       setIsGoogleLoading(false);
     }
@@ -144,6 +153,17 @@ export default function RegisterPage() {
               <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
             )}
           </div>
+
+          <label className="flex cursor-pointer items-start gap-2.5">
+            <input
+              type="checkbox"
+              ref={feedbackConsentRef}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-green-700"
+            />
+            <span className="text-[13px] leading-snug text-gray-500">
+              I&apos;d like to receive occasional feedback requests from PantryChef
+            </span>
+          </label>
 
           <Button
             type="submit"

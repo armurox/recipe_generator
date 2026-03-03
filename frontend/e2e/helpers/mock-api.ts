@@ -8,6 +8,7 @@ const mockUser = {
   display_name: "E2E User",
   dietary_prefs: [],
   household_size: 2,
+  feedback_consent: true,
 };
 
 const mockPantryItem = {
