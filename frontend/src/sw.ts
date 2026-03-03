@@ -2,7 +2,7 @@
 
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { NetworkOnly, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -17,7 +17,17 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // Cross-origin requests (backend API, Supabase) must bypass the default
+    // NetworkFirst handler which has a 10-second networkTimeoutSeconds.
+    // That timeout kills long-running requests like receipt scanning before
+    // the backend can respond, causing Safari "Load failed" errors.
+    {
+      matcher: ({ sameOrigin }) => !sameOrigin,
+      handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+  ],
 });
 
 serwist.addEventListeners();

@@ -166,6 +166,10 @@ export type ScanReceiptInput = {
   image_url: string;
 };
 
+export type UpdateScanInput = {
+  store_name?: string | null;
+};
+
 export type ConfirmItem = {
   receipt_item_id: number;
   ingredient_name?: string | null;

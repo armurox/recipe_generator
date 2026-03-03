@@ -40,6 +40,10 @@ class ReceiptScanDetailOut(Schema):
     items: list[ReceiptItemOut]
 
 
+class UpdateScanIn(Schema):
+    store_name: str | None = Field(default=None, description="Override the detected store/source name")
+
+
 class ConfirmItemIn(Schema):
     receipt_item_id: int
     ingredient_name: str | None = Field(default=None, description="Override the OCR-detected ingredient name")

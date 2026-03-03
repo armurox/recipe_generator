@@ -186,7 +186,9 @@ Use **React Hook Form + Zod** for all forms (consistency over using different to
 - **Mobile input zoom prevention** — all `<input>` elements in dialogs and forms must use `text-base` (16px) font size. iOS Safari auto-zooms the viewport when focusing inputs with `font-size < 16px`, forcing users to manually zoom back out. Labels and non-interactive text can use smaller sizes
 
 ## API Client Trailing Slashes
-Django's `APPEND_SLASH` setting cannot redirect POST/PATCH/DELETE requests. All mutation URLs in the API client must include a trailing slash (e.g. `/pantry/`, not `/pantry`). GET requests work without trailing slashes because Django can redirect them.
+Django's `APPEND_SLASH` setting can only redirect GET requests (via 301). POST/PATCH/DELETE requests **cannot** be redirected and will return 404 if the URL doesn't match the backend route exactly. Therefore:
+- **Frontend mutation URLs must exactly match the backend route** — if the Django Ninja route is `"/"` (e.g. `@router.post("/")`), the frontend must send `/pantry/` (with slash). If the route is `"/{id}"`, the frontend must send `/pantry/{id}` (no trailing slash).
+- GET requests are more forgiving because Django can 301-redirect `/pantry` to `/pantry/`, but it's still best practice to match exactly.
 
 ## Frontend Error Handling
 Layered strategy:

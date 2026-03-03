@@ -20,6 +20,7 @@ from apps.receipts.schemas import (
     ReceiptScanDetailOut,
     ReceiptScanOut,
     ScanReceiptIn,
+    UpdateScanIn,
 )
 from apps.receipts.services.base import OCRExtractionError
 from apps.receipts.services.claude_ocr import ClaudeOCRProvider
@@ -121,6 +122,26 @@ async def get_scan(request, scan_id: str):
         scan = await ReceiptScan.objects.prefetch_related("items__ingredient").aget(id=scan_id, user=request.auth)
     except ReceiptScan.DoesNotExist:
         raise HttpError(404, "Scan not found")
+
+    items = [item async for item in scan.items.all()]
+    return _build_scan_detail_response(scan, items)
+
+
+@router.patch("/{scan_id}", response={200: ReceiptScanDetailOut, 404: ErrorOut})
+async def update_scan(request, scan_id: str, payload: UpdateScanIn):
+    """Update mutable fields on a receipt scan (currently only store_name).
+
+    Allows users to correct or set the store/source name after OCR extraction,
+    e.g. when the scan is from a pantry photo rather than a store receipt.
+    """
+    try:
+        scan = await ReceiptScan.objects.prefetch_related("items__ingredient").aget(id=scan_id, user=request.auth)
+    except ReceiptScan.DoesNotExist:
+        raise HttpError(404, "Scan not found")
+
+    if payload.store_name is not None:
+        scan.store_name = payload.store_name
+        await scan.asave(update_fields=["store_name"])
 
     items = [item async for item in scan.items.all()]
     return _build_scan_detail_response(scan, items)
