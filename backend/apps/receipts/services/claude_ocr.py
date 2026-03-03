@@ -46,7 +46,7 @@ CATEGORY_NAMES = [
 
 EXTRACT_TOOL = {
     "name": "extract_receipt_items",
-    "description": "Extract structured line items from a grocery receipt image.",
+    "description": "Extract structured food items from an image (grocery receipt, food product label, or pantry/fridge photo).",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -104,19 +104,26 @@ EXTRACT_TOOL = {
     },
 }
 
-SYSTEM_PROMPT = f"""You are a grocery receipt OCR specialist. Extract every line item from the receipt image.
+SYSTEM_PROMPT = f"""You are a grocery item recognition specialist. Analyze the image and extract all food items.
+
+The image may be one of:
+- A **grocery receipt**: Extract every line item from the receipt text.
+- A **food product/label**: Identify the food product from its label, packaging, or appearance.
+- A **pantry or fridge photo**: Identify every distinct food item visible.
 
 Rules:
-1. **Normalize names**: Convert abbreviated/uppercase receipt text to clean, lowercase ingredient names.
-   Examples: "ORGANIC BNLS CHKN BRST" → "chicken breast", "GRN PEPPERS" → "green pepper", "2% MILK 1GAL" → "milk"
-2. **Non-food items**: Set is_food=false for TAX, BAGS, SUBTOTAL, TOTAL, CHANGE, CARD PAYMENT, DISCOUNT, COUPON, DEPOSIT, and similar non-grocery lines.
-3. **Quantities**: Extract numeric quantities when visible (e.g. "2 @ $1.99" → quantity=2). Default to 1 for single items.
+1. **Normalize names**: Convert to clean, lowercase ingredient names.
+   Receipt examples: "ORGANIC BNLS CHKN BRST" → "chicken breast", "GRN PEPPERS" → "green pepper", "2% MILK 1GAL" → "milk"
+   Product examples: "Planters Dry Roasted Peanuts" → "peanuts", "Barilla Spaghetti No. 5" → "spaghetti"
+2. **Non-food items**: For receipts, set is_food=false for TAX, BAGS, SUBTOTAL, TOTAL, CHANGE, CARD PAYMENT, DISCOUNT, COUPON, DEPOSIT, and similar non-grocery lines. For product or pantry images, all detected items should be is_food=true.
+3. **Quantities**: Extract numeric quantities when visible (e.g. "2 @ $1.99" → quantity=2). For product images, extract weight/volume from packaging (e.g. "500g" → quantity=500, unit="g"). Default to 1 for single items.
 4. **Units**: Detect units from context (kg, lb, oz, g, L, gal, piece, bunch, pack, can, bottle, box, bag).
-5. **Prices**: Extract the price for each line item if visible.
+5. **Prices**: Extract the price for each line item if visible (typically receipts only).
 6. **Category hints**: Assign the best-matching category from this list:
    {", ".join(CATEGORY_NAMES)}
-7. **Include everything**: Extract ALL visible line items, including non-food ones.
-8. **Be precise**: If you cannot determine a field, use null rather than guessing."""
+7. **Include everything**: For receipts, extract ALL visible line items including non-food ones. For product or pantry images, identify every distinct food item visible.
+8. **Be precise**: If you cannot determine a field, use null rather than guessing.
+9. **Commonly missed items**: Pay special attention to nuts, seeds, spices, dried herbs, bulk items, store-brand products, and items with heavily abbreviated names on receipts."""
 
 # Maximum image file size: 10 MB
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -175,7 +182,7 @@ class ClaudeOCRProvider(OCRProvider):
                             },
                             {
                                 "type": "text",
-                                "text": "Extract all line items from this grocery receipt.",
+                                "text": "Analyze this image and extract all food items. It may be a grocery receipt, a food product label, or a photo of food items.",
                             },
                         ],
                     }
