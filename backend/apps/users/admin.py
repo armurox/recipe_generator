@@ -1,11 +1,11 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from unfold.admin import ModelAdmin
 
 from apps.users.models import User
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(ModelAdmin):
     list_display = ("email", "display_name", "feedback_consent", "is_staff", "is_active")
     list_filter = ("feedback_consent", "is_staff", "is_active")
     search_fields = ("email", "display_name")
