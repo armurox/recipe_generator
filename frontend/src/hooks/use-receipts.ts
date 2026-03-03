@@ -8,6 +8,7 @@ import type {
   ReceiptScan,
   ReceiptScanDetail,
   ScanReceiptInput,
+  UpdateScanInput,
 } from "@/types/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -33,9 +34,37 @@ export function useScanReceipt() {
 
   return useMutation({
     mutationFn: (input: ScanReceiptInput) =>
-      apiClient.post<ReceiptScanDetail>("/receipts/scan", input),
+      apiClient.post<ReceiptScanDetail>("/receipts/scan", input, { timeout: 120_000 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
+    },
+  });
+}
+
+export function useUpdateScan(scanId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateScanInput) =>
+      apiClient.patch<ReceiptScanDetail>(`/receipts/${scanId}`, input),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["receipts", "scan", scanId] });
+      const previous = queryClient.getQueryData<ReceiptScanDetail>(["receipts", "scan", scanId]);
+      if (previous) {
+        queryClient.setQueryData<ReceiptScanDetail>(["receipts", "scan", scanId], {
+          ...previous,
+          ...input,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["receipts", "scan", scanId], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["receipts", "scans"] });
     },
   });
 }

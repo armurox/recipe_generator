@@ -70,8 +70,10 @@ export default function ScanPage() {
   return (
     <div>
       <div className="px-5 pb-4 pt-3">
-        <h1 className="text-[28px] font-bold text-gray-900">Scan Receipt</h1>
-        <p className="mt-0.5 text-sm text-gray-500">Add items to your pantry</p>
+        <h1 className="text-[28px] font-bold text-gray-900">Scan Items</h1>
+        <p className="mt-0.5 text-sm text-gray-500">
+          Scan a receipt or food items to add to your pantry
+        </p>
       </div>
 
       <div className="px-5 pb-24">
@@ -88,9 +90,10 @@ export default function ScanPage() {
                 Tips for best results
               </div>
               <ul className="list-disc space-y-0.5 pl-4 text-[13px] leading-relaxed text-gray-700">
-                <li>Flatten the receipt on a flat surface</li>
-                <li>Make sure the text is in focus</li>
-                <li>Include the entire receipt in frame</li>
+                <li>Place receipts flat on a surface</li>
+                <li>For food items, capture the label or packaging</li>
+                <li>Make sure the text is clear and in focus</li>
+                <li>Include the full item in frame</li>
                 <li>Avoid shadows and glare</li>
               </ul>
             </div>

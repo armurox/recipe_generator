@@ -78,7 +78,7 @@ export function RecentScans() {
             </div>
             <div className="flex-1">
               <div className="text-[15px] font-medium text-gray-900">
-                {scan.store_name || "Unknown Store"}
+                {scan.store_name || "Unknown"}
               </div>
               <div className="text-[13px] text-gray-500">
                 {scan.item_count} items · {formatDate(scan.scanned_at)}

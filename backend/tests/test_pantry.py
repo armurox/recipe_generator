@@ -86,6 +86,16 @@ class ListPantryItemsAPITest(TestCase):
         self.assertEqual(data["count"], 2)
         self.assertEqual(len(data["items"]), 2)
 
+    def test_default_list_excludes_to_buy(self):
+        PantryItemFactory(user=self.user, status=PantryItem.Status.AVAILABLE)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.EXPIRED)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.TO_BUY)
+        response = self.client.get(BASE_URL, **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 2)  # to_buy excluded
+        statuses = {item["status"] for item in data["items"]}
+        self.assertNotIn("to_buy", statuses)
+
     def test_filter_by_status(self):
         PantryItemFactory(user=self.user, status=PantryItem.Status.AVAILABLE)
         PantryItemFactory(user=self.user, status=PantryItem.Status.USED_UP)
@@ -565,3 +575,276 @@ class BulkDeletePantryAPITest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["deleted_count"], 1)
         self.assertFalse(PantryItem.objects.filter(id=item.id).exists())
+
+
+class BulkCreatePantryAPITest(TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.auth = make_auth_header(self.user)
+
+    def test_bulk_create_multiple_items(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps(
+                {
+                    "items": [
+                        {"ingredient_name": "Tomato", "quantity": "2", "unit": "piece"},
+                        {"ingredient_name": "Onion", "quantity": "1", "unit": "piece"},
+                        {"ingredient_name": "Garlic", "quantity": "3", "unit": "clove"},
+                    ]
+                }
+            ),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["created_count"], 3)
+        self.assertEqual(data["updated_count"], 0)
+        self.assertEqual(len(data["items"]), 3)
+
+    def test_bulk_create_upserts_available(self):
+        ing = IngredientFactory(name="rice")
+        PantryItemFactory(user=self.user, ingredient=ing, quantity=Decimal("2.00"), status=PantryItem.Status.AVAILABLE)
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps({"items": [{"ingredient_name": "Rice", "quantity": "3"}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["created_count"], 0)
+        self.assertEqual(data["updated_count"], 1)
+        self.assertEqual(Decimal(data["items"][0]["quantity"]), Decimal("5.00"))
+
+    def test_bulk_create_to_buy_no_upsert(self):
+        ing = IngredientFactory(name="eggs")
+        PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE)
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps({"items": [{"ingredient_name": "Eggs", "status": "to_buy", "quantity": "1"}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["created_count"], 1)
+        self.assertEqual(data["items"][0]["status"], "to_buy")
+        # Both rows exist — available + to_buy
+        self.assertEqual(PantryItem.objects.filter(user=self.user, ingredient=ing).count(), 2)
+
+    def test_bulk_create_max_50_limit(self):
+        items = [{"ingredient_name": f"Item {i}"} for i in range(51)]
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps({"items": items}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_bulk_create_empty_list(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps({"items": []}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_bulk_create_mixed_statuses(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps(
+                {
+                    "items": [
+                        {"ingredient_name": "Butter", "quantity": "1", "status": "available"},
+                        {"ingredient_name": "Flour", "quantity": "2", "status": "to_buy"},
+                        {"ingredient_name": "Sugar", "quantity": "1", "status": "available"},
+                    ]
+                }
+            ),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["created_count"], 3)
+        self.assertEqual(data["updated_count"], 0)
+        statuses = [item["status"] for item in data["items"]]
+        self.assertIn("available", statuses)
+        self.assertIn("to_buy", statuses)
+
+    def test_bulk_create_invalid_status(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-create",
+            data=json.dumps({"items": [{"ingredient_name": "Salt", "status": "expired"}]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+
+class ToBuyStatusAPITest(TestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.auth = make_auth_header(self.user)
+
+    def test_mark_to_buy_as_available(self):
+        ing = IngredientFactory()
+        item = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY, quantity=Decimal("3.00")
+        )
+        response = self.client.patch(
+            f"{BASE_URL}{item.id}",
+            data=json.dumps({"status": "available"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "available")
+        # Auto-expiry should be applied (7-day default for uncategorized)
+        self.assertIsNotNone(response.json()["expiry_date"])
+
+    def test_mark_to_buy_auto_expiry_uses_category_shelf_life(self):
+        cat = IngredientCategoryFactory(name="Dairy", default_shelf_life=14)
+        ing = IngredientFactory(category=cat)
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY)
+        response = self.client.patch(
+            f"{BASE_URL}{item.id}",
+            data=json.dumps({"status": "available"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        expected_expiry = str(date.today() + timedelta(days=14))
+        self.assertEqual(response.json()["expiry_date"], expected_expiry)
+
+    def test_mark_to_buy_explicit_expiry_overrides_auto(self):
+        ing = IngredientFactory()
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY)
+        response = self.client.patch(
+            f"{BASE_URL}{item.id}",
+            data=json.dumps({"status": "available", "expiry_date": "2026-06-01"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["expiry_date"], "2026-06-01")
+
+    def test_mark_to_buy_merges_with_existing_available(self):
+        ing = IngredientFactory()
+        available_item = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE, quantity=Decimal("2.00")
+        )
+        to_buy_item = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY, quantity=Decimal("3.00")
+        )
+        response = self.client.patch(
+            f"{BASE_URL}{to_buy_item.id}",
+            data=json.dumps({"status": "available"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # Merged item should be the existing available one with combined quantity
+        self.assertEqual(str(data["id"]), str(available_item.id))
+        self.assertEqual(Decimal(data["quantity"]), Decimal("5.00"))
+        # to_buy item should be deleted
+        self.assertFalse(PantryItem.objects.filter(id=to_buy_item.id).exists())
+        # available item still exists
+        self.assertTrue(PantryItem.objects.filter(id=available_item.id).exists())
+
+    def test_list_filter_to_buy(self):
+        PantryItemFactory(user=self.user, status=PantryItem.Status.AVAILABLE)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.TO_BUY)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.TO_BUY)
+        response = self.client.get(f"{BASE_URL}?status=to_buy", **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 2)
+        for item in data["items"]:
+            self.assertEqual(item["status"], "to_buy")
+
+    def test_bulk_mark_purchased(self):
+        ing1 = IngredientFactory()
+        ing2 = IngredientFactory()
+        item1 = PantryItemFactory(
+            user=self.user, ingredient=ing1, status=PantryItem.Status.TO_BUY, quantity=Decimal("2.00")
+        )
+        item2 = PantryItemFactory(
+            user=self.user, ingredient=ing2, status=PantryItem.Status.TO_BUY, quantity=Decimal("1.00")
+        )
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(item1.id), str(item2.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["purchased_count"], 2)
+        self.assertEqual(len(data["items"]), 2)
+        for item in data["items"]:
+            self.assertEqual(item["status"], "available")
+            self.assertIsNotNone(item["expiry_date"])
+
+    def test_bulk_mark_purchased_merges_with_existing(self):
+        ing = IngredientFactory()
+        available = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE, quantity=Decimal("5.00")
+        )
+        to_buy = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY, quantity=Decimal("3.00")
+        )
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(to_buy.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["purchased_count"], 1)
+        self.assertEqual(str(data["items"][0]["id"]), str(available.id))
+        self.assertEqual(Decimal(data["items"][0]["quantity"]), Decimal("8.00"))
+        self.assertFalse(PantryItem.objects.filter(id=to_buy.id).exists())
+
+    def test_bulk_mark_purchased_skips_non_to_buy(self):
+        ing = IngredientFactory()
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE)
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(item.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["purchased_count"], 0)
+
+    def test_bulk_mark_purchased_empty_ids_400(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": []}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_summary_includes_to_buy_count(self):
+        cat = IngredientCategoryFactory(name="Dairy", icon="🥛")
+        ing1 = IngredientFactory(category=cat)
+        ing2 = IngredientFactory(category=cat)
+        ing3 = IngredientFactory(category=cat)
+        PantryItemFactory(user=self.user, ingredient=ing1, status=PantryItem.Status.AVAILABLE)
+        PantryItemFactory(user=self.user, ingredient=ing2, status=PantryItem.Status.TO_BUY)
+        PantryItemFactory(user=self.user, ingredient=ing3, status=PantryItem.Status.TO_BUY)
+
+        response = self.client.get(f"{BASE_URL}summary", **self.auth)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["total_to_buy"], 2)
+        cat_data = data["categories"][0]
+        self.assertEqual(cat_data["to_buy_count"], 2)
+        self.assertEqual(cat_data["available_count"], 1)
