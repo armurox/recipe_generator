@@ -11,6 +11,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -148,3 +150,33 @@ NINJA_DOCS_URL = "/docs"
 # Rate limiting (receipt scans)
 SCAN_RATE_LIMIT_MAX = int(os.environ.get("SCAN_RATE_LIMIT_MAX", "10"))
 SCAN_RATE_LIMIT_PERIOD = int(os.environ.get("SCAN_RATE_LIMIT_PERIOD", "3600"))  # seconds
+
+# Django Unfold admin theme
+UNFOLD = {
+    "SITE_TITLE": "PantryChef Administration",
+    "SITE_HEADER": "PantryChef",
+    "SITE_SUBHEADER": "Administration",
+    "SITE_SYMBOL": "restaurant",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+    "BORDER_RADIUS": "6px",
+    "COLORS": {
+        "primary": {
+            "50": "oklch(96.2% .044 156.7)",
+            "100": "oklch(93.7% .074 155.4)",
+            "200": "oklch(88.5% .117 153.5)",
+            "300": "oklch(81.8% .151 152.5)",
+            "400": "oklch(73.3% .163 149.6)",
+            "500": "oklch(63.9% .145 147.1)",
+            "600": "oklch(53.9% .124 146.2)",
+            "700": "oklch(44.8% .103 148.7)",
+            "800": "oklch(37.8% .083 150.4)",
+            "900": "oklch(32.8% .068 152.5)",
+            "950": "oklch(21.7% .048 153.7)",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
+}

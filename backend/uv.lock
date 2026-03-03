@@ -272,6 +272,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-unfold"
+version = "0.82.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/13/02145332d2dbaa484f2c52646bc497fb9d5bc2326f6e15de9bd736b04a5a/django_unfold-0.82.0.tar.gz", hash = "sha256:d3920e0d98e72bbdcb0698e4307dc35cf6ffab55b92a6bdc6c20a79147df3472", size = 1111407 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/82/46f5fd2e4b4f1063956d2211f3794d161b71bf3e1274f570dedd9afa425b/django_unfold-0.82.0-py3-none-any.whl", hash = "sha256:0d90264fd399ae54d3f63e9d0a8d2dea003de479e417e88f274473f78713c253", size = 1226434 },
+]
+
+[[package]]
 name = "docstring-parser"
 version = "0.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -518,6 +530,7 @@ dependencies = [
     { name = "django" },
     { name = "django-cors-headers" },
     { name = "django-ninja" },
+    { name = "django-unfold" },
     { name = "gunicorn" },
     { name = "httpx" },
     { name = "psycopg", extra = ["binary"] },
@@ -545,6 +558,7 @@ requires-dist = [
     { name = "django", specifier = ">=6.0,<6.1" },
     { name = "django-cors-headers", specifier = ">=4.6,<5.0" },
     { name = "django-ninja", specifier = ">=1.3,<2.0" },
+    { name = "django-unfold", specifier = ">=0.82.0" },
     { name = "gunicorn", specifier = ">=23.0,<24.0" },
     { name = "httpx", specifier = ">=0.28,<1.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4.0" },
