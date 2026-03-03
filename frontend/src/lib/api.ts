@@ -47,12 +47,14 @@ export const apiClient = {
     return handleResponse<T>(response);
   },
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
+  async post<T>(path: string, body?: unknown, options?: { timeout?: number }): Promise<T> {
     const headers = getAuthHeaders();
+    const signal = options?.timeout ? AbortSignal.timeout(options.timeout) : undefined;
     const response = await fetch(`${BASE_URL}${path}`, {
       method: "POST",
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
     });
     return handleResponse<T>(response);
   },
