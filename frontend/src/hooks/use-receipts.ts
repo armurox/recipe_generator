@@ -47,8 +47,23 @@ export function useUpdateScan(scanId: string) {
   return useMutation({
     mutationFn: (input: UpdateScanInput) =>
       apiClient.patch<ReceiptScanDetail>(`/receipts/${scanId}`, input),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["receipts", "scan", scanId], data);
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["receipts", "scan", scanId] });
+      const previous = queryClient.getQueryData<ReceiptScanDetail>(["receipts", "scan", scanId]);
+      if (previous) {
+        queryClient.setQueryData<ReceiptScanDetail>(["receipts", "scan", scanId], {
+          ...previous,
+          ...input,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["receipts", "scan", scanId], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts", "scans"] });
     },
   });
