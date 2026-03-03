@@ -32,7 +32,12 @@
       <h1>Good morning!</h1>
       <p class="header-subtitle">Here's your pantry overview</p>
     </div>
-    <div class="avatar">A</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <a href="pantry.html" style="width:40px; height:40px; border-radius:50%; background:var(--gray-100); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; position:relative; text-decoration:none;" title="Shopping List">🛒
+        <span style="position:absolute; top:-4px; right:-4px; background:var(--red-500, #EF4444); color:#fff; font-size:10px; font-weight:700; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 4px;">3</span>
+      </a>
+      <div class="avatar">A</div>
+    </div>
   </div>
 
   <div class="content">
@@ -56,7 +61,7 @@
     <div class="quick-actions">
       <a class="quick-action" href="scan.html">
         <div class="quick-action-icon">📷</div>
-        <div class="quick-action-label">Scan Receipt</div>
+        <div class="quick-action-label">Scan Items</div>
       </a>
       <a class="quick-action" href="recipes.html">
         <div class="quick-action-icon">🍳</div>

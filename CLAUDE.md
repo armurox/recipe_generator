@@ -183,6 +183,7 @@ Use **React Hook Form + Zod** for all forms (consistency over using different to
 - **Dialog sizing for PWA** — prefer narrow, tall card proportions (e.g. `w-64`) with stacked full-width buttons. Side-by-side buttons look cramped on mobile
 - **Form state sync** — use key-based remount (`key={item.id}`) instead of `useEffect` + `setState` to sync form state with prop changes (React Compiler lint rule: `react-hooks/set-state-in-effect`)
 - **Popup dialogs** — prefer centered popup (`w-64`, `items-center justify-center`) over bottom sheets for compact forms (cook rating, add item, delete confirm). Bottom sheets can be clipped by the bottom nav in the PWA context
+- **Mobile input zoom prevention** — all `<input>` elements in dialogs and forms must use `text-base` (16px) font size. iOS Safari auto-zooms the viewport when focusing inputs with `font-size < 16px`, forcing users to manually zoom back out. Labels and non-interactive text can use smaller sizes
 
 ## API Client Trailing Slashes
 Django's `APPEND_SLASH` setting cannot redirect POST/PATCH/DELETE requests. All mutation URLs in the API client must include a trailing slash (e.g. `/pantry/`, not `/pantry`). GET requests work without trailing slashes because Django can redirect them.
