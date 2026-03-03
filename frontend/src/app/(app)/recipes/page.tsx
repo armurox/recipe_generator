@@ -187,7 +187,7 @@ export default function RecipesPage() {
               hasNextPage={suggestions.hasNextPage}
               fetchNextPage={suggestions.fetchNextPage}
               emptyTitle="No suggestions yet"
-              emptySubtitle="Scan a receipt to add ingredients"
+              emptySubtitle="Scan a receipt or food items to add ingredients"
               showScanCTA
             />
           </>
@@ -316,7 +316,7 @@ function InfiniteRecipeList({
             href="/scan"
             className="mt-4 rounded-xl bg-green-700 px-5 py-2.5 text-sm font-medium text-white"
           >
-            Scan a receipt
+            Scan Items
           </Link>
         )}
       </div>

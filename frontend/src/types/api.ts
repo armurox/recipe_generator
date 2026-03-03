@@ -74,12 +74,40 @@ export type PantryItemUseInput = {
   quantity?: number | null;
 };
 
+export type BulkMarkPurchasedInput = {
+  ids: string[];
+};
+
+export type BulkMarkPurchasedOutput = {
+  purchased_count: number;
+  items: PantryItem[];
+};
+
 export type BulkDeleteInput = {
   ids: string[];
 };
 
 export type BulkDeleteOutput = {
   deleted_count: number;
+};
+
+export type BulkCreateItemInput = {
+  ingredient_name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  expiry_date?: string | null;
+  category_hint?: string | null;
+  status?: "available" | "to_buy";
+};
+
+export type BulkCreateInput = {
+  items: BulkCreateItemInput[];
+};
+
+export type BulkCreateOutput = {
+  created_count: number;
+  updated_count: number;
+  items: PantryItem[];
 };
 
 export type CategorySummary = {
@@ -90,6 +118,7 @@ export type CategorySummary = {
   expired_count: number;
   used_up_count: number;
   expiring_soon_count: number;
+  to_buy_count: number;
   total_count: number;
 };
 
@@ -98,6 +127,7 @@ export type PantrySummary = {
   total_available: number;
   total_expired: number;
   total_expiring_soon: number;
+  total_to_buy: number;
   categories: CategorySummary[];
 };
 

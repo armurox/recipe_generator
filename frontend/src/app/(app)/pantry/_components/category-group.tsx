@@ -13,6 +13,7 @@ type CategoryGroupProps = {
   onDeleteItem: (id: string) => void;
   onQuantityChange: (id: string, newQuantity: number) => void;
   onEditItem: (item: PantryItem) => void;
+  onMarkPurchased?: (id: string) => void;
 };
 
 export function CategoryGroup({
@@ -25,6 +26,7 @@ export function CategoryGroup({
   onDeleteItem,
   onQuantityChange,
   onEditItem,
+  onMarkPurchased,
 }: CategoryGroupProps) {
   return (
     <div className="mb-5">
@@ -43,6 +45,7 @@ export function CategoryGroup({
             onDelete={onDeleteItem}
             onQuantityChange={onQuantityChange}
             onEdit={onEditItem}
+            onMarkPurchased={onMarkPurchased}
           />
         ))}
       </div>

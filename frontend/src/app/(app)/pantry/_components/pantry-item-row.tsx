@@ -2,7 +2,7 @@
 
 import { ExpiryBadge } from "@/components/expiry-badge";
 import type { PantryItem } from "@/types/api";
-import { Trash2 } from "lucide-react";
+import { CheckCircle, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 type PantryItemRowProps = {
@@ -13,6 +13,7 @@ type PantryItemRowProps = {
   onDelete: (id: string) => void;
   onQuantityChange: (id: string, newQuantity: number) => void;
   onEdit: (item: PantryItem) => void;
+  onMarkPurchased?: (id: string) => void;
 };
 
 export function PantryItemRow({
@@ -23,6 +24,7 @@ export function PantryItemRow({
   onDelete,
   onQuantityChange,
   onEdit,
+  onMarkPurchased,
 }: PantryItemRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -122,7 +124,18 @@ export function PantryItemRow({
 
       <ExpiryBadge expiryDate={item.expiry_date} showDate />
 
-      {!isSelectMode && (
+      {!isSelectMode && item.status === "to_buy" && onMarkPurchased ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkPurchased(item.id);
+          }}
+          className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-green-600 hover:bg-green-50"
+        >
+          <CheckCircle className="h-4 w-4" />
+        </button>
+      ) : !isSelectMode ? (
         <button
           type="button"
           onClick={(e) => {
@@ -133,7 +146,7 @@ export function PantryItemRow({
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

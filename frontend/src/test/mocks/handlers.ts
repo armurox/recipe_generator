@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import {
+  mockBulkCreateOutput,
   mockCookingLog,
   mockPantryItem,
   mockPantryItemCreateOutput,
@@ -36,6 +37,9 @@ export const handlers = [
   }),
   http.delete(`${API_URL}/pantry/:id`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API_URL}/pantry/:id/use`, () => HttpResponse.json(mockPantryItem)),
+  http.post(`${API_URL}/pantry/bulk-create`, () =>
+    HttpResponse.json(mockBulkCreateOutput, { status: 201 }),
+  ),
   http.post(`${API_URL}/pantry/bulk-delete`, () => HttpResponse.json({ deleted_count: 1 })),
 
   // Recipes

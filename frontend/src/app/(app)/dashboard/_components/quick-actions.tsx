@@ -8,7 +8,7 @@ export function QuickActions() {
         <div className="mb-2 text-3xl">
           <Camera className="mx-auto h-7 w-7 text-green-700" />
         </div>
-        <div className="text-[13px] font-medium text-gray-900">Scan Receipt</div>
+        <div className="text-[13px] font-medium text-gray-900">Scan Items</div>
       </Link>
       <Link href="/recipes" className="rounded-xl bg-white p-4 text-center shadow-sm">
         <div className="mb-2 text-3xl">
