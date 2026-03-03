@@ -62,6 +62,15 @@ class PantryItemUseIn(Schema):
     quantity: Decimal | None = Field(default=None, description="Quantity to consume; omit to use all")
 
 
+class BulkMarkPurchasedIn(Schema):
+    ids: list[uuid.UUID] = Field(description="List of to_buy item IDs to mark as purchased")
+
+
+class BulkMarkPurchasedOut(Schema):
+    purchased_count: int = Field(description="Number of items marked as purchased")
+    items: list[PantryItemOut]
+
+
 class BulkDeleteIn(Schema):
     ids: list[uuid.UUID] = Field(description="List of pantry item IDs to delete")
 

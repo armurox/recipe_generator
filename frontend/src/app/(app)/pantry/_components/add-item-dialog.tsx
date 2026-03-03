@@ -184,16 +184,18 @@ export function AddItemDialog({
                       className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-[13px] outline-none focus:border-green-500"
                     />
                   </div>
-                  <div className="w-[110px]">
-                    <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
-                      Expiry
-                    </label>
-                    <input
-                      type="date"
-                      {...form.register(`items.${index}.expiry_date`)}
-                      className="w-full rounded-lg border border-gray-300 px-1.5 py-1.5 text-[13px] text-gray-700 outline-none focus:border-green-500"
-                    />
-                  </div>
+                  {defaultStatus !== "to_buy" && (
+                    <div className="w-[110px]">
+                      <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
+                        Expiry
+                      </label>
+                      <input
+                        type="date"
+                        {...form.register(`items.${index}.expiry_date`)}
+                        className="w-full rounded-lg border border-gray-300 px-1.5 py-1.5 text-[13px] text-gray-700 outline-none focus:border-green-500"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

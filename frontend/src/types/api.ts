@@ -74,6 +74,15 @@ export type PantryItemUseInput = {
   quantity?: number | null;
 };
 
+export type BulkMarkPurchasedInput = {
+  ids: string[];
+};
+
+export type BulkMarkPurchasedOutput = {
+  purchased_count: number;
+  items: PantryItem[];
+};
+
 export type BulkDeleteInput = {
   ids: string[];
 };

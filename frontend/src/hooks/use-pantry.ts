@@ -5,6 +5,7 @@ import type {
   BulkCreateInput,
   BulkCreateOutput,
   BulkDeleteOutput,
+  BulkMarkPurchasedOutput,
   PaginatedResponse,
   PantryItem,
   PantryItemCreateInput,
@@ -130,6 +131,18 @@ export function useDeletePantryItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (itemId: string) => apiClient.delete(`/pantry/${itemId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });
+    },
+  });
+}
+
+export function useBulkMarkPurchased() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      apiClient.post<BulkMarkPurchasedOutput>("/pantry/bulk-mark-purchased", { ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pantry"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["recipes", "suggest"], refetchType: "all" });

@@ -115,6 +115,20 @@ export async function mockApiRoutes(page: Page) {
       return route.fulfill({ json: { created_count: items.length, updated_count: 0, items } });
     }
 
+    if (path === "/pantry/bulk-mark-purchased") {
+      const body = JSON.parse(route.request().postData() ?? "{}");
+      const ids = body.ids as string[];
+      const purchasedItems: typeof pantryItems = [];
+      for (const id of ids) {
+        const idx = pantryItems.findIndex((i) => i.id === id && i.status === "to_buy");
+        if (idx !== -1) {
+          pantryItems[idx] = { ...pantryItems[idx], status: "available", expiry_date: "2026-03-10" };
+          purchasedItems.push(pantryItems[idx]);
+        }
+      }
+      return route.fulfill({ json: { purchased_count: purchasedItems.length, items: purchasedItems } });
+    }
+
     if (path === "/pantry/bulk-delete") {
       return route.fulfill({ json: { deleted_count: 1 } });
     }
@@ -152,7 +166,13 @@ export async function mockApiRoutes(page: Page) {
         pantryItems.push(newItem);
         return route.fulfill({ status: 201, json: { item: newItem, created: true } });
       }
-      return route.fulfill({ json: { items: pantryItems, count: pantryItems.length } });
+      // Filter by status if query param is present; exclude to_buy by default
+      const urlObj = new URL(url);
+      const statusFilter = urlObj.searchParams.get("status");
+      const filtered = statusFilter
+        ? pantryItems.filter((i) => i.status === statusFilter)
+        : pantryItems.filter((i) => i.status !== "to_buy");
+      return route.fulfill({ json: { items: filtered, count: filtered.length } });
     }
 
     // ── Receipts ──

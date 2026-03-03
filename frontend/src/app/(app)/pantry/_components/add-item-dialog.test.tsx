@@ -101,6 +101,18 @@ describe("AddItemDialog", () => {
     expect(screen.getByText("Add Shopping Items")).toBeInTheDocument();
   });
 
+  it("hides expiry field when defaultStatus is to_buy", () => {
+    renderWithClient(<AddItemDialog open={true} onOpenChange={vi.fn()} defaultStatus="to_buy" />);
+    expect(screen.queryByText("Expiry")).not.toBeInTheDocument();
+  });
+
+  it("shows expiry field when defaultStatus is available", () => {
+    renderWithClient(
+      <AddItemDialog open={true} onOpenChange={vi.fn()} defaultStatus="available" />,
+    );
+    expect(screen.getByText("Expiry")).toBeInTheDocument();
+  });
+
   it("adds and removes rows", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();

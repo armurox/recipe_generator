@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import {
   useBulkDeletePantryItems,
+  useBulkMarkPurchased,
   useDeletePantryItem,
   usePantryItems,
   usePantrySearch,
@@ -12,7 +13,7 @@ import {
 } from "@/hooks/use-pantry";
 import { useCurrentUser } from "@/hooks/use-user";
 import type { PantryItem } from "@/types/api";
-import { Camera, CheckSquare, Plus } from "lucide-react";
+import { Camera, CheckSquare, Package, Plus, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ import { DeleteConfirmDialog } from "./_components/delete-confirm-dialog";
 import { EditItemSheet } from "./_components/edit-item-sheet";
 import { PantryFilters, type PantryFilter } from "./_components/pantry-filters";
 import { PantrySearch } from "./_components/pantry-search";
+
+type PageFilter = PantryFilter | "to_buy";
 
 type GroupedItems = {
   categoryName: string;
@@ -72,7 +75,7 @@ function mergeItems(clientItems: PantryItem[], serverItems: PantryItem[]): Pantr
 }
 
 export default function PantryPage() {
-  const [filter, setFilter] = useState<PantryFilter>("all");
+  const [filter, setFilter] = useState<PageFilter>("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
   const { data: user } = useCurrentUser();
@@ -95,6 +98,7 @@ export default function PantryPage() {
   const updatePantryItem = useUpdatePantryItem();
   const deletePantryItem = useDeletePantryItem();
   const bulkDeletePantryItems = useBulkDeletePantryItems();
+  const bulkMarkPurchased = useBulkMarkPurchased();
 
   const queryFilters = useMemo(() => {
     if (filter === "available") return { status: "available" };
@@ -130,10 +134,12 @@ export default function PantryPage() {
 
   const groups = useMemo(() => groupByCategory(displayItems), [displayItems]);
 
-  // Show skeleton when: initial load, OR client-side search found nothing and server is still searching
+  // Show skeleton when: initial load, placeholder data with no matching items (filter switch),
+  // OR client-side search found nothing and server is still searching
   const showSearchSkeleton =
     isActiveSearch && clientFiltered.length === 0 && isSearching && debouncedSearch.length > 0;
-  const showSkeleton = isLoading || showSearchSkeleton;
+  const showFilterSwitchSkeleton = isPlaceholderData && displayItems.length === 0;
+  const showSkeleton = isLoading || showSearchSkeleton || showFilterSwitchSkeleton;
 
   const initial =
     user?.display_name?.charAt(0).toUpperCase() ?? user?.email?.charAt(0).toUpperCase() ?? "?";
@@ -233,8 +239,15 @@ export default function PantryPage() {
     <div>
       <div className="flex items-center justify-between px-5 pb-4 pt-3">
         <div>
-          <h1 className="text-[28px] font-bold text-gray-900">Pantry</h1>
-          {summary ? (
+          <h1 className="text-[28px] font-bold text-gray-900">
+            {filter === "to_buy" ? "Shopping List" : "Pantry"}
+          </h1>
+          {filter === "to_buy" ? (
+            <p className="mt-0.5 text-sm text-gray-500">
+              {summary?.total_to_buy ?? 0} {(summary?.total_to_buy ?? 0) === 1 ? "item" : "items"}{" "}
+              to buy
+            </p>
+          ) : summary ? (
             <>
               <p className="mt-0.5 text-sm text-gray-500">
                 {summary.total_available} {summary.total_available === 1 ? "item" : "items"}{" "}
@@ -251,6 +264,33 @@ export default function PantryPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (filter === "to_buy") {
+                setFilter("all");
+              } else {
+                setFilter("to_buy");
+                setSearch("");
+              }
+            }}
+            className={`relative flex h-10 w-10 items-center justify-center rounded-full ${
+              filter === "to_buy" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {filter === "to_buy" ? (
+              <Package className="h-4.5 w-4.5" />
+            ) : (
+              <>
+                <ShoppingCart className="h-4.5 w-4.5" />
+                {(summary?.total_to_buy ?? 0) > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {summary!.total_to_buy}
+                  </span>
+                )}
+              </>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => setAddDialogOpen(true)}
@@ -286,7 +326,32 @@ export default function PantryPage() {
 
       <div className={`px-5 ${isSelectMode ? "pb-36" : "pb-24"}`}>
         <PantrySearch value={search} onChange={setSearch} />
-        <PantryFilters active={filter} onChange={setFilter} />
+        {filter !== "to_buy" && (
+          <PantryFilters active={filter as PantryFilter} onChange={setFilter} />
+        )}
+        {filter === "to_buy" && displayItems.length > 0 && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={async () => {
+                const ids = displayItems.map((item) => item.id);
+                try {
+                  const result = await bulkMarkPurchased.mutateAsync(ids);
+                  toast.success(
+                    `${result.purchased_count} ${result.purchased_count === 1 ? "item" : "items"} marked as purchased`,
+                  );
+                } catch {
+                  toast.error("Failed to mark items as purchased");
+                }
+              }}
+              disabled={bulkMarkPurchased.isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            >
+              <CheckSquare className="h-4 w-4" />
+              {bulkMarkPurchased.isPending ? "Marking..." : `Buy All (${displayItems.length})`}
+            </button>
+          </div>
+        )}
 
         {showSkeleton ? (
           <div className="space-y-4">

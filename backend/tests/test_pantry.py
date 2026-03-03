@@ -86,6 +86,16 @@ class ListPantryItemsAPITest(TestCase):
         self.assertEqual(data["count"], 2)
         self.assertEqual(len(data["items"]), 2)
 
+    def test_default_list_excludes_to_buy(self):
+        PantryItemFactory(user=self.user, status=PantryItem.Status.AVAILABLE)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.EXPIRED)
+        PantryItemFactory(user=self.user, status=PantryItem.Status.TO_BUY)
+        response = self.client.get(BASE_URL, **self.auth)
+        data = response.json()
+        self.assertEqual(data["count"], 2)  # to_buy excluded
+        statuses = {item["status"] for item in data["items"]}
+        self.assertNotIn("to_buy", statuses)
+
     def test_filter_by_status(self):
         PantryItemFactory(user=self.user, status=PantryItem.Status.AVAILABLE)
         PantryItemFactory(user=self.user, status=PantryItem.Status.USED_UP)
@@ -694,6 +704,34 @@ class ToBuyStatusAPITest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "available")
+        # Auto-expiry should be applied (7-day default for uncategorized)
+        self.assertIsNotNone(response.json()["expiry_date"])
+
+    def test_mark_to_buy_auto_expiry_uses_category_shelf_life(self):
+        cat = IngredientCategoryFactory(name="Dairy", default_shelf_life=14)
+        ing = IngredientFactory(category=cat)
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY)
+        response = self.client.patch(
+            f"{BASE_URL}{item.id}",
+            data=json.dumps({"status": "available"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        expected_expiry = str(date.today() + timedelta(days=14))
+        self.assertEqual(response.json()["expiry_date"], expected_expiry)
+
+    def test_mark_to_buy_explicit_expiry_overrides_auto(self):
+        ing = IngredientFactory()
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY)
+        response = self.client.patch(
+            f"{BASE_URL}{item.id}",
+            data=json.dumps({"status": "available", "expiry_date": "2026-06-01"}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["expiry_date"], "2026-06-01")
 
     def test_mark_to_buy_merges_with_existing_available(self):
         ing = IngredientFactory()
@@ -728,6 +766,71 @@ class ToBuyStatusAPITest(TestCase):
         self.assertEqual(data["count"], 2)
         for item in data["items"]:
             self.assertEqual(item["status"], "to_buy")
+
+    def test_bulk_mark_purchased(self):
+        ing1 = IngredientFactory()
+        ing2 = IngredientFactory()
+        item1 = PantryItemFactory(
+            user=self.user, ingredient=ing1, status=PantryItem.Status.TO_BUY, quantity=Decimal("2.00")
+        )
+        item2 = PantryItemFactory(
+            user=self.user, ingredient=ing2, status=PantryItem.Status.TO_BUY, quantity=Decimal("1.00")
+        )
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(item1.id), str(item2.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["purchased_count"], 2)
+        self.assertEqual(len(data["items"]), 2)
+        for item in data["items"]:
+            self.assertEqual(item["status"], "available")
+            self.assertIsNotNone(item["expiry_date"])
+
+    def test_bulk_mark_purchased_merges_with_existing(self):
+        ing = IngredientFactory()
+        available = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE, quantity=Decimal("5.00")
+        )
+        to_buy = PantryItemFactory(
+            user=self.user, ingredient=ing, status=PantryItem.Status.TO_BUY, quantity=Decimal("3.00")
+        )
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(to_buy.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["purchased_count"], 1)
+        self.assertEqual(str(data["items"][0]["id"]), str(available.id))
+        self.assertEqual(Decimal(data["items"][0]["quantity"]), Decimal("8.00"))
+        self.assertFalse(PantryItem.objects.filter(id=to_buy.id).exists())
+
+    def test_bulk_mark_purchased_skips_non_to_buy(self):
+        ing = IngredientFactory()
+        item = PantryItemFactory(user=self.user, ingredient=ing, status=PantryItem.Status.AVAILABLE)
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": [str(item.id)]}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["purchased_count"], 0)
+
+    def test_bulk_mark_purchased_empty_ids_400(self):
+        response = self.client.post(
+            f"{BASE_URL}bulk-mark-purchased",
+            data=json.dumps({"ids": []}),
+            content_type="application/json",
+            **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
 
     def test_summary_includes_to_buy_count(self):
         cat = IngredientCategoryFactory(name="Dairy", icon="🥛")

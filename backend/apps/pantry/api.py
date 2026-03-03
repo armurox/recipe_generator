@@ -15,6 +15,8 @@ from apps.pantry.schemas import (
     BulkCreateOut,
     BulkDeleteIn,
     BulkDeleteOut,
+    BulkMarkPurchasedIn,
+    BulkMarkPurchasedOut,
     CategorySummaryOut,
     PantryItemCreateIn,
     PantryItemCreateOut,
@@ -88,6 +90,9 @@ async def list_pantry_items(
 
     if status:
         qs = qs.filter(status=status)
+    else:
+        # Exclude to_buy items from default listing — they live in the shopping list
+        qs = qs.exclude(status=PantryItem.Status.TO_BUY)
     if expiring_within is not None:
         cutoff = date.today() + timedelta(days=expiring_within)
         qs = qs.filter(expiry_date__isnull=False, expiry_date__lte=cutoff, status=PantryItem.Status.AVAILABLE)
@@ -296,6 +301,71 @@ async def bulk_create_pantry_items(request, payload: BulkCreateIn):
     return 201, {"created_count": created_count, "updated_count": updated_count, "items": result_items}
 
 
+@router.post("/bulk-mark-purchased", response={200: BulkMarkPurchasedOut, 400: ErrorOut})
+async def bulk_mark_purchased(request, payload: BulkMarkPurchasedIn):
+    """Mark multiple to_buy items as purchased (available) in a single operation.
+
+    For each item: applies auto-expiry (category shelf life or 7-day default),
+    merges with existing available item for the same ingredient if one exists.
+    Silently skips IDs that don't exist, belong to another user, or aren't to_buy.
+    """
+    if not payload.ids:
+        raise HttpError(400, "No item IDs provided")
+
+    if len(payload.ids) > 100:
+        raise HttpError(400, "Cannot mark more than 100 items at once")
+
+    user = request.auth
+    result_items = []
+    purchased_count = 0
+
+    for item_id in payload.ids:
+        try:
+            item = await PantryItem.objects.select_related("ingredient__category").aget(
+                id=item_id, user=user, status=PantryItem.Status.TO_BUY
+            )
+        except PantryItem.DoesNotExist:
+            continue
+
+        # Determine expiry: category shelf life > 7-day default
+        expiry = await calculate_expiry_date(item.ingredient)
+        if expiry is None:
+            expiry = date.today() + timedelta(days=7)
+
+        # Check for existing available item to merge into
+        try:
+            existing = await PantryItem.objects.select_related("ingredient__category").aget(
+                user=user,
+                ingredient=item.ingredient,
+                status=PantryItem.Status.AVAILABLE,
+            )
+            if item.quantity and existing.quantity:
+                existing.quantity += item.quantity
+            elif item.quantity:
+                existing.quantity = item.quantity
+            existing.expiry_date = expiry
+            await existing.asave()
+            await item.adelete()
+            existing = await PantryItem.objects.select_related("ingredient__category").aget(id=existing.id)
+            result_items.append(await _build_pantry_item_response(existing))
+        except PantryItem.DoesNotExist:
+            item.status = PantryItem.Status.AVAILABLE
+            item.expiry_date = expiry
+            await item.asave()
+            item = await PantryItem.objects.select_related("ingredient__category").aget(id=item.id)
+            result_items.append(await _build_pantry_item_response(item))
+
+        purchased_count += 1
+
+    logger.info(
+        "[bulk_mark_purchased] user=%s requested=%d purchased=%d",
+        user.id,
+        len(payload.ids),
+        purchased_count,
+    )
+    return {"purchased_count": purchased_count, "items": result_items}
+
+
 @router.post("/bulk-delete", response={200: BulkDeleteOut, 400: ErrorOut})
 async def bulk_delete_pantry_items(request, payload: BulkDeleteIn):
     """Delete multiple pantry items in a single operation.
@@ -404,10 +474,17 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
         if payload.status not in valid_statuses:
             raise HttpError(400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
 
-        # Decision: When marking a to_buy item as "available", check if there's already
-        # an available item for the same ingredient. If so, merge quantities into the
-        # existing item and delete the to_buy item. This prevents duplicate available rows.
+        # Decision: When marking a to_buy item as "available", auto-apply expiry date
+        # if the user didn't provide one. Uses the ingredient's category shelf life,
+        # falling back to 7 days if no category is set.
         if payload.status == PantryItem.Status.AVAILABLE and item.status == PantryItem.Status.TO_BUY:
+            # Determine expiry: user-provided > category shelf life > 7-day default
+            expiry_for_purchased = payload.expiry_date
+            if expiry_for_purchased is None:
+                expiry_for_purchased = await calculate_expiry_date(item.ingredient)
+            if expiry_for_purchased is None:
+                expiry_for_purchased = date.today() + timedelta(days=7)
+
             try:
                 existing_available = await PantryItem.objects.select_related("ingredient__category").aget(
                     user=request.auth,
@@ -422,8 +499,7 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
                     existing_available.quantity = new_qty
                 if payload.unit is not None:
                     existing_available.unit = payload.unit
-                if payload.expiry_date is not None:
-                    existing_available.expiry_date = payload.expiry_date
+                existing_available.expiry_date = expiry_for_purchased
                 await existing_available.asave()
                 await item.adelete()
                 existing_available = await PantryItem.objects.select_related("ingredient__category").aget(
@@ -436,7 +512,8 @@ async def update_pantry_item(request, item_id: str, payload: PantryItemUpdateIn)
                 )
                 return await _build_pantry_item_response(existing_available)
             except PantryItem.DoesNotExist:
-                pass  # No existing available item — proceed with normal status update
+                # No existing available item — apply expiry and proceed with status update
+                item.expiry_date = expiry_for_purchased
 
         item.status = payload.status
     if payload.quantity is not None:
