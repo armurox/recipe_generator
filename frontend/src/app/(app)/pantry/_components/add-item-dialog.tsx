@@ -110,16 +110,16 @@ export function AddItemDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="w-80 gap-2 rounded-xl p-4 pt-5">
+      <DialogContent className="w-72 gap-2 rounded-xl p-3 pt-4">
         <DialogHeader className="p-0">
           <DialogTitle className="text-[15px]">{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-          <div className="max-h-[50vh] space-y-3 overflow-y-auto pr-1">
+          <div className="max-h-[50vh] space-y-2.5 overflow-y-auto pr-1">
             {fields.map((field, index) => (
-              <div key={field.id} className="space-y-1.5">
+              <div key={field.id} className="space-y-1">
                 {index > 0 && <div className="border-t border-gray-100" />}
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-1">
                   <div className="min-w-0 flex-1">
                     <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
                       Name <span className="text-red-500">*</span>
@@ -129,7 +129,7 @@ export function AddItemDialog({
                       {...form.register(`items.${index}.ingredient_name`)}
                       placeholder="e.g. Chicken Breast"
                       autoFocus={index === 0}
-                      className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-[13px] outline-none focus:border-green-500"
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1 text-base outline-none focus:border-green-500"
                     />
                     {form.formState.errors.items?.[index]?.ingredient_name && (
                       <p className="mt-0.5 text-[11px] text-red-500">
@@ -147,8 +147,8 @@ export function AddItemDialog({
                     </button>
                   )}
                 </div>
-                <div className="flex gap-1.5">
-                  <div className="w-16">
+                <div className="flex gap-1">
+                  <div className="w-14">
                     <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
                       Qty
                     </label>
@@ -157,8 +157,8 @@ export function AddItemDialog({
                       step="any"
                       min="0"
                       {...form.register(`items.${index}.quantity`)}
-                      placeholder="500"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-[13px] outline-none focus:border-green-500"
+                      placeholder="1"
+                      className="w-full rounded-lg border border-gray-300 px-1.5 py-1 text-base outline-none focus:border-green-500"
                     />
                   </div>
                   <div className="w-14">
@@ -169,10 +169,10 @@ export function AddItemDialog({
                       type="text"
                       {...form.register(`items.${index}.unit`)}
                       placeholder="g"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-[13px] outline-none focus:border-green-500"
+                      className="w-full rounded-lg border border-gray-300 px-1.5 py-1 text-base outline-none focus:border-green-500"
                     />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
                       Category
                     </label>
@@ -181,22 +181,22 @@ export function AddItemDialog({
                       list="category-hints"
                       {...form.register(`items.${index}.category_hint`)}
                       placeholder="Dairy"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-[13px] outline-none focus:border-green-500"
+                      className="w-full rounded-lg border border-gray-300 px-1.5 py-1 text-base outline-none focus:border-green-500"
                     />
                   </div>
-                  {defaultStatus !== "to_buy" && (
-                    <div className="w-[110px]">
-                      <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
-                        Expiry
-                      </label>
-                      <input
-                        type="date"
-                        {...form.register(`items.${index}.expiry_date`)}
-                        className="w-full rounded-lg border border-gray-300 px-1.5 py-1.5 text-[13px] text-gray-700 outline-none focus:border-green-500"
-                      />
-                    </div>
-                  )}
                 </div>
+                {defaultStatus !== "to_buy" && (
+                  <div>
+                    <label className="mb-0.5 block text-[11px] font-medium text-gray-500">
+                      Expiry
+                    </label>
+                    <input
+                      type="date"
+                      {...form.register(`items.${index}.expiry_date`)}
+                      className="w-full rounded-lg border border-gray-300 px-1.5 py-1 text-base text-gray-700 outline-none focus:border-green-500"
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

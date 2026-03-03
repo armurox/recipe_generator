@@ -36,7 +36,7 @@ describe("AddItemDialog", () => {
     renderWithClient(<AddItemDialog open={true} onOpenChange={onOpenChange} />);
 
     expect(screen.getByPlaceholderText("e.g. Chicken Breast")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("500")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("1")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("g")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Dairy")).toBeInTheDocument();
     expect(screen.getByText("Add 0 Items")).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("AddItemDialog", () => {
     renderWithClient(<AddItemDialog open={true} onOpenChange={onOpenChange} />);
 
     await user.type(screen.getByPlaceholderText("e.g. Chicken Breast"), "Eggs");
-    await user.type(screen.getByPlaceholderText("500"), "12");
+    await user.type(screen.getByPlaceholderText("1"), "12");
     await user.type(screen.getByPlaceholderText("g"), "pcs");
 
     const submitBtn = screen.getByText("Add 1 Item");
