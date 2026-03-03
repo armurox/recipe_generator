@@ -328,7 +328,11 @@ export default function PantryPage() {
       </div>
 
       <div className={`px-5 ${isSelectMode ? "pb-36" : "pb-24"}`}>
-        <PantrySearch value={search} onChange={setSearch} />
+        <PantrySearch
+          value={search}
+          onChange={setSearch}
+          placeholder={filter === "to_buy" ? "Search shopping list..." : undefined}
+        />
         {filter !== "to_buy" && (
           <PantryFilters active={filter as PantryFilter} onChange={setFilter} />
         )}
